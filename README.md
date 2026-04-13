@@ -218,6 +218,8 @@ https://photos.example.com/api/auth/provider/callback
 
 4. Start Photoview and open the site. The login page will show a `Sign in with Provider ID` button.
 
+For a production-oriented deployment path with MariaDB, reverse proxy guidance, and a ready-to-copy Provider compose file, see [DEPLOY_PROVIDER.md](./DEPLOY_PROVIDER.md) and [deploy/docker-compose.provider.example.yml](./deploy/docker-compose.provider.example.yml).
+
 Notes:
 
 - Photoview still requires its own database even when external authentication is enabled, because it stores albums, media metadata, shares, scanner state, and per-user access relations.

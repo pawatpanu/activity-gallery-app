@@ -6,6 +6,7 @@ This guide deploys Photoview as a standalone production service with:
 - MariaDB
 - Provider-based login
 - first-run auto provisioning
+- localhost-only app bind for reverse proxy deployments
 
 ## Assumptions
 
@@ -20,14 +21,15 @@ Adjust these values for your environment.
 
 ```bash
 cd /var/www/web-srn/photo_gallery
-cp "docker-compose example/example.env" .env
-cp "docker-compose example/docker-compose.example.yml" docker-compose.yml
+cp deploy/provider-prd.env.example .env
+cp deploy/docker-compose.provider.example.yml docker-compose.yml
 ```
 
 Alternative:
 
 - use [deploy/provider-uat.env.example](/abs/path/c:/xampp/htdocs/photo_gallery/deploy/provider-uat.env.example) as your UAT starting point
 - use [deploy/provider-prd.env.example](/abs/path/c:/xampp/htdocs/photo_gallery/deploy/provider-prd.env.example) as your PRD starting point
+- use [deploy/docker-compose.provider.example.yml](/abs/path/c:/xampp/htdocs/photo_gallery/deploy/docker-compose.provider.example.yml) as the recommended Provider deployment compose file
 
 ## 2. Edit `.env`
 
@@ -38,6 +40,7 @@ HOST_PHOTOVIEW_LOCATION=/opt/photoview
 HOST_PHOTOVIEW_MEDIA_ROOT=/srv/photos
 
 PHOTOVIEW_DATABASE_DRIVER=mysql
+PHOTOVIEW_UI_ENDPOINTS=https://photos.example.com
 MARIADB_DATABASE=photoview
 MARIADB_USER=photoview
 MARIADB_PASSWORD=change_me
@@ -56,29 +59,12 @@ PHOTOVIEW_PROVIDER_SECRET_KEY=replace_me
 PHOTOVIEW_INITIAL_ROOT_PATH=/photos
 ```
 
-## 3. Enable Provider env passthrough in `docker-compose.yml`
+## 3. Prepare folders
 
-Uncomment these lines under `photoview.environment`:
-
-```yaml
-# PHOTOVIEW_PROVIDER_AUTH_ENABLED: ${PHOTOVIEW_PROVIDER_AUTH_ENABLED}
-# PHOTOVIEW_PROVIDER_AUTO_PROVISION: ${PHOTOVIEW_PROVIDER_AUTO_PROVISION}
-# PHOTOVIEW_PROVIDER_HEALTH_ID_BASE_URL: ${PHOTOVIEW_PROVIDER_HEALTH_ID_BASE_URL}
-# PHOTOVIEW_PROVIDER_HEALTH_ID_CLIENT_ID: ${PHOTOVIEW_PROVIDER_HEALTH_ID_CLIENT_ID}
-# PHOTOVIEW_PROVIDER_HEALTH_ID_CLIENT_SECRET: ${PHOTOVIEW_PROVIDER_HEALTH_ID_CLIENT_SECRET}
-# PHOTOVIEW_PROVIDER_HEALTH_ID_REDIRECT_URI: ${PHOTOVIEW_PROVIDER_HEALTH_ID_REDIRECT_URI}
-# PHOTOVIEW_PROVIDER_HEALTH_ID_SCOPE: ${PHOTOVIEW_PROVIDER_HEALTH_ID_SCOPE}
-# PHOTOVIEW_PROVIDER_BASE_URL: ${PHOTOVIEW_PROVIDER_BASE_URL}
-# PHOTOVIEW_PROVIDER_CLIENT_ID: ${PHOTOVIEW_PROVIDER_CLIENT_ID}
-# PHOTOVIEW_PROVIDER_SECRET_KEY: ${PHOTOVIEW_PROVIDER_SECRET_KEY}
-# PHOTOVIEW_INITIAL_ROOT_PATH: ${PHOTOVIEW_INITIAL_ROOT_PATH}
-```
-
-If you want a direct public port, keep:
-
-```yaml
-ports:
-  - "8000:80"
+```bash
+mkdir -p /opt/photoview/storage
+mkdir -p /opt/photoview/database/mariadb
+mkdir -p /srv/photos
 ```
 
 ## 4. Make media readable
@@ -95,8 +81,11 @@ Adjust these commands if you use a stricter group-based permission model.
 
 ```bash
 docker compose --env-file .env up -d
+docker compose ps
 docker compose logs -f photoview
 ```
+
+The recommended compose file binds the application to `127.0.0.1:8000`, which is safer for reverse-proxy-based deployments.
 
 ## 6. Reverse proxy
 
@@ -128,6 +117,16 @@ After login:
 
 - go to `Settings`
 - click `Scan All`
+
+## 9. Useful checks
+
+```bash
+docker compose config
+docker compose ps
+docker compose logs --tail=200 photoview
+docker compose logs --tail=200 photoview-mariadb
+curl -I http://127.0.0.1:8000
+```
 
 ## Notes
 
