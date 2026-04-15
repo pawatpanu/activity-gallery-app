@@ -15,7 +15,7 @@ cp deploy/docker-compose.provider.lan.example.yml docker-compose.yml
 At minimum, set:
 
 ```env
-HOST_PHOTOVIEW_MEDIA_ROOT=/var/www/web-srn/public
+HOST_PHOTOVIEW_MEDIA_ROOT=/var/www/web-srn/activity_gallery_media
 PHOTOVIEW_UI_ENDPOINTS=http://192.168.111.23:8000
 MARIADB_PASSWORD=change_me
 MARIADB_ROOT_PASSWORD=change_root_me
@@ -33,14 +33,16 @@ PHOTOVIEW_PROVIDER_AUTO_PROVISION=0
 ```bash
 mkdir -p /opt/photoview/storage
 mkdir -p /opt/photoview/database/mariadb
+mkdir -p /var/www/web-srn/activity_gallery_media
+mkdir -p /var/www/web-srn/activity_gallery_media/album-demo
 ```
 
 ## 4. Allow media reads
 
 ```bash
-chmod o+rx /var/www/web-srn/public
-find /var/www/web-srn/public -type d -exec chmod o+rx {} \;
-find /var/www/web-srn/public -type f -exec chmod o+r {} \;
+chmod o+rx /var/www/web-srn/activity_gallery_media
+find /var/www/web-srn/activity_gallery_media -type d -exec chmod o+rx {} \;
+find /var/www/web-srn/activity_gallery_media -type f -exec chmod o+r {} \;
 ```
 
 ## 5. Start
@@ -60,7 +62,19 @@ Open:
 http://192.168.111.23:8000
 ```
 
-Complete the normal initial setup with a local admin account, then go to `Settings` and click `Scan All`.
+Complete the normal initial setup with a local admin account. For the photo path, enter:
+
+```text
+/photos
+```
+
+Then copy some test photos into:
+
+```text
+/var/www/web-srn/activity_gallery_media/album-demo
+```
+
+And go to `Settings` and click `Scan All`.
 
 ## 7. Later, when the domain is ready
 
@@ -75,3 +89,5 @@ Then set:
 - `PHOTOVIEW_PROVIDER_AUTH_ENABLED=1`
 - `PHOTOVIEW_PROVIDER_AUTO_PROVISION=1`
 - `PHOTOVIEW_PROVIDER_HEALTH_ID_REDIRECT_URI=https://your-domain/api/auth/provider/callback`
+
+For day-to-day album operations, see [ACTIVITY_GALLERY_OPERATIONS.md](./ACTIVITY_GALLERY_OPERATIONS.md).

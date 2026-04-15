@@ -220,6 +220,7 @@ https://photos.example.com/api/auth/provider/callback
 
 For a production-oriented deployment path with MariaDB, reverse proxy guidance, and a ready-to-copy Provider compose file, see [DEPLOY_PROVIDER.md](./DEPLOY_PROVIDER.md) and [deploy/docker-compose.provider.example.yml](./deploy/docker-compose.provider.example.yml).
 If you need to bring the system up on an internal IP before a real domain is available, see [LAN_SETUP.md](./LAN_SETUP.md).
+For the recommended `folder = album` operating model for `web-srn`, see [ACTIVITY_GALLERY_OPERATIONS.md](./ACTIVITY_GALLERY_OPERATIONS.md).
 
 Notes:
 
