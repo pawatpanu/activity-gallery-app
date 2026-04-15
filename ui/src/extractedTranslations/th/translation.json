@@ -22,6 +22,49 @@
       }
     }
   },
+  "albums_page": {
+    "activity_gallery": {
+      "open_modal": "เพิ่มอัลบั้ม",
+      "modal": {
+        "title": "เพิ่มอัลบั้ม",
+        "description": "สร้างอัลบั้มใหม่ เลือกรูปหลักสำหรับปกอัลบั้ม และเพิ่มรูปภายในอัลบั้มได้ในหน้าต่างเดียว",
+        "submit": "เพิ่มอัลบั้ม"
+      },
+      "root": {
+        "label": "พาธหลักของคลังภาพ"
+      },
+      "parent_path": {
+        "label": "พาธแม่",
+        "placeholder": "พาธแม่แบบไม่บังคับ เช่น 2026-04-events"
+      },
+      "album_name": {
+        "label": "ชื่ออัลบั้ม",
+        "placeholder": "ชื่อโฟลเดอร์อัลบั้ม เช่น 2026-04-songkran-event"
+      },
+      "main_image": {
+        "label": "รูปหลัก"
+      },
+      "album_images": {
+        "label": "รูปภายในอัลบั้ม"
+      },
+      "validation": {
+        "title": "ข้อมูลไม่ครบ",
+        "root_required": "กรุณาเลือก root path",
+        "album_name_required": "กรุณาระบุชื่ออัลบั้ม"
+      },
+      "create_success": {
+        "title": "เพิ่มอัลบั้มสำเร็จ",
+        "description": "สร้างอัลบั้มและเพิ่มรูปภาพที่เลือกเรียบร้อยแล้ว"
+      },
+      "create_failed": {
+        "title": "เพิ่มอัลบั้มไม่สำเร็จ"
+      },
+      "load_failed": {
+        "title": "โหลดข้อมูลคลังภาพไม่สำเร็จ"
+      },
+      "no_roots": "ยังไม่มี root album ที่ผู้ใช้นี้ถือสิทธิ์อยู่"
+    }
+  },
   "login_page": {
     "field": {
       "password": "รหัสผ่าน",

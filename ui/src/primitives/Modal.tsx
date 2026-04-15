@@ -6,6 +6,7 @@ export type ModalAction = {
   key: string
   label: string
   variant?: 'negative' | 'positive' | 'default'
+  disabled?: boolean
   onClick(event: React.MouseEvent<HTMLButtonElement>): void
 }
 
@@ -32,6 +33,7 @@ const Modal = ({
       onClick={e => x.onClick(e)}
       variant={x.variant}
       background="white"
+      disabled={x.disabled}
     >
       {x.label}
     </Button>

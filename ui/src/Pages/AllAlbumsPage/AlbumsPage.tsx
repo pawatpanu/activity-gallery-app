@@ -7,6 +7,9 @@ import { getMyAlbums, getMyAlbumsVariables } from './__generated__/getMyAlbums'
 import useURLParameters from '../../hooks/useURLParameters'
 import useOrderingParams from '../../hooks/useOrderingParams'
 import AlbumFilter from '../../components/album/AlbumFilter'
+import { useIsAdmin } from '../../components/routes/AuthorizedRoute'
+import { Button } from '../../primitives/form/Input'
+import ActivityGalleryModal from '../../components/activityGallery/ActivityGalleryModal'
 
 const getAlbumsQuery = gql`
   query getMyAlbums($orderBy: String, $orderDirection: OrderDirection) {
@@ -29,11 +32,13 @@ const getAlbumsQuery = gql`
 
 const AlbumsPage = () => {
   const { t } = useTranslation()
+  const isAdmin = useIsAdmin()
+  const [createModalOpen, setCreateModalOpen] = React.useState(false)
 
   const urlParams = useURLParameters()
   const orderParams = useOrderingParams(urlParams, 'updated_at')
 
-  const { error, data } = useQuery<getMyAlbums, getMyAlbumsVariables>(
+  const { error, data, refetch } = useQuery<getMyAlbums, getMyAlbumsVariables>(
     getAlbumsQuery,
     {
       variables: {
@@ -59,13 +64,29 @@ const AlbumsPage = () => {
 
   return (
     <Layout title="Albums">
-      <AlbumFilter
-        onlyFavorites={false}
-        ordering={orderParams}
-        setOrdering={orderParams.setOrdering}
-        sortingOptions={sortingOptions}
-      />
+      <div className="flex flex-wrap gap-4 items-end justify-between">
+        <AlbumFilter
+          onlyFavorites={false}
+          ordering={orderParams}
+          setOrdering={orderParams.setOrdering}
+          sortingOptions={sortingOptions}
+        />
+        {isAdmin && (
+          <Button variant="positive" onClick={() => setCreateModalOpen(true)}>
+            {t('albums_page.activity_gallery.open_modal', 'Add album')}
+          </Button>
+        )}
+      </div>
       <AlbumBoxes error={error} albums={data?.myAlbums} />
+      {isAdmin && (
+        <ActivityGalleryModal
+          open={createModalOpen}
+          onClose={() => setCreateModalOpen(false)}
+          onCompleted={() => {
+            void refetch()
+          }}
+        />
+      )}
     </Layout>
   )
 }
