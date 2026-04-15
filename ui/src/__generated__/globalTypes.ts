@@ -24,6 +24,7 @@ export enum LanguageTranslation {
   SimplifiedChinese = "SimplifiedChinese",
   Spanish = "Spanish",
   Swedish = "Swedish",
+  Thai = "Thai",
   TraditionalChineseHK = "TraditionalChineseHK",
   TraditionalChineseTW = "TraditionalChineseTW",
   Turkish = "Turkish",

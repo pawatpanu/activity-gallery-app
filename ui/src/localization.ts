@@ -163,6 +163,12 @@ export const loadTranslations = () => {
           i18n.changeLanguage('ja')
         })
         return
+      case LanguageTranslation.Thai:
+        import('./extractedTranslations/th/translation.json').then(language => {
+          i18n.addResourceBundle('th', 'translation', language)
+          i18n.changeLanguage('th')
+        })
+        return
       default:
         import('./extractedTranslations/en/translation.json').then(language => {
           i18n.addResourceBundle('en', 'translation', language)

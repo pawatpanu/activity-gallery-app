@@ -1,0 +1,166 @@
+{
+  "general": {
+    "action": {
+      "add": "เพิ่ม",
+      "cancel": "ยกเลิก",
+      "remove": "ลบ",
+      "save": "บันทึก"
+    },
+    "loading": {
+      "default": "กำลังโหลด...",
+      "page": "กำลังโหลดหน้า"
+    }
+  },
+  "header": {
+    "search": {
+      "placeholder": "ค้นหา",
+      "loading": "กำลังโหลดผลลัพธ์...",
+      "no_results": "ไม่พบผลลัพธ์",
+      "result_type": {
+        "albums": "อัลบั้ม",
+        "media": "สื่อ"
+      }
+    }
+  },
+  "login_page": {
+    "field": {
+      "password": "รหัสผ่าน",
+      "submit": "เข้าสู่ระบบ",
+      "username": "ชื่อผู้ใช้"
+    },
+    "initial_setup": {
+      "field": {
+        "photo_path": {
+          "label": "พาธรูปภาพ",
+          "placeholder": "/path/to/photos"
+        },
+        "submit": "ตั้งค่า Photoview"
+      },
+      "title": "ตั้งค่าเริ่มต้น"
+    },
+    "welcome": "ยินดีต้อนรับสู่ Photoview"
+  },
+  "people_page": {
+    "recognize_unlabeled_faces_button": "ตรวจจับใบหน้าที่ไม่มีชื่อ"
+  },
+  "photos_page": {
+    "title": "ไทม์ไลน์"
+  },
+  "places_page": {
+    "title": "สถานที่"
+  },
+  "routes": {
+    "page_not_found": "ไม่พบหน้าที่ต้องการ"
+  },
+  "settings": {
+    "concurrent_workers": {
+      "description": "จำนวนงานสแกนสูงสุดที่อนุญาตให้ทำงานพร้อมกัน",
+      "title": "จำนวน worker ของตัวสแกน"
+    },
+    "logout": "ออกจากระบบ",
+    "periodic_scanner": {
+      "checkbox_label": "เปิดใช้งานการสแกนตามรอบเวลา",
+      "field": {
+        "description": "กำหนดความถี่ที่ระบบจะสแกนสื่อของผู้ใช้ทั้งหมดอัตโนมัติ",
+        "label": "ช่วงเวลาการสแกนตามรอบ"
+      },
+      "interval_unit": {
+        "days": "วัน",
+        "hour": "ชั่วโมง",
+        "minutes": "นาที",
+        "months": "เดือน",
+        "seconds": "วินาที"
+      },
+      "title": "การสแกนตามรอบเวลา"
+    },
+    "scanner": {
+      "description": "สแกนสื่อใหม่หรือสื่อที่มีการอัปเดตของผู้ใช้ทั้งหมด",
+      "scan_all_users": "สแกนผู้ใช้ทั้งหมด",
+      "title": "ตัวสแกน"
+    },
+    "user_preferences": {
+      "change_language": {
+        "description": "เปลี่ยนภาษาของเว็บไซต์สำหรับผู้ใช้นี้",
+        "label": "ภาษาเว็บไซต์"
+      },
+      "language_selector": {
+        "placeholder": "เลือกภาษา"
+      },
+      "theme": {
+        "auto": {
+          "label": "เหมือนกับระบบ"
+        },
+        "dark": {
+          "label": "มืด"
+        },
+        "description": "เปลี่ยนลักษณะการแสดงผลของเว็บไซต์",
+        "light": {
+          "label": "สว่าง"
+        },
+        "title": "การตั้งค่าธีม"
+      },
+      "title": "การตั้งค่าผู้ใช้"
+    },
+    "users": {
+      "add_user": {
+        "submit": "เพิ่มผู้ใช้"
+      },
+      "table": {
+        "column_names": {
+          "action": "การทำงาน",
+          "capabilities": "สิทธิ์",
+          "photo_path": "พาธรูปภาพ",
+          "username": "ชื่อผู้ใช้"
+        },
+        "new_user": "ผู้ใช้ใหม่",
+        "row": {
+          "action": {
+            "change_password": "เปลี่ยนรหัสผ่าน",
+            "delete": "ลบ",
+            "edit": "แก้ไข",
+            "scan": "สแกน"
+          }
+        }
+      },
+      "title": "ผู้ใช้"
+    },
+    "version_info": {
+      "build_date_title": "วันที่ build",
+      "title": "เวอร์ชัน Photoview",
+      "version_title": "เวอร์ชันที่เผยแพร่"
+    }
+  },
+  "share_page": {
+    "media": {
+      "title": "สื่อที่แชร์"
+    },
+    "protected_share": {
+      "description": "ลิงก์แชร์นี้ถูกป้องกันด้วยรหัสผ่าน",
+      "password_required_error": "กรุณาระบุรหัสผ่าน",
+      "title": "ลิงก์แชร์ที่มีการป้องกัน"
+    },
+    "share_not_found": "ไม่พบลิงก์แชร์",
+    "share_not_found_description": "ลิงก์แชร์อาจหมดอายุหรือถูกลบไปแล้ว",
+    "wrong_password": "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง"
+  },
+  "sidemenu": {
+    "albums": "อัลบั้ม",
+    "people": "บุคคล",
+    "photos": "ไทม์ไลน์",
+    "places": "สถานที่",
+    "settings": "ตั้งค่า"
+  },
+  "timeline_filter": {
+    "date": {
+      "dropdown_all": "ตั้งแต่วันนี้",
+      "dropdown_year": "{{year}} และก่อนหน้า",
+      "label": "วันที่"
+    }
+  },
+  "title": {
+    "loading_album": "กำลังโหลดอัลบั้ม",
+    "login": "เข้าสู่ระบบ",
+    "people": "บุคคล",
+    "settings": "ตั้งค่า"
+  }
+}

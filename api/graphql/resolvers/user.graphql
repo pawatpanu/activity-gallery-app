@@ -28,6 +28,7 @@ enum LanguageTranslation {
   Basque,
   Turkish,
   Japanese,
+  Thai,
 }
 
 "Preferences for regular users"
