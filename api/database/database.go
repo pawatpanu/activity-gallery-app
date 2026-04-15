@@ -133,6 +133,7 @@ func SetupDatabase() (*gorm.DB, error) {
 	}
 
 	var db *gorm.DB
+	var err error
 	var lastErr error
 
 	for retryCount := 1; retryCount <= 5; retryCount++ {
