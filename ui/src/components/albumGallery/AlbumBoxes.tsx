@@ -6,9 +6,15 @@ type AlbumBoxesProps = {
   error?: Error
   albums?: albumQuery_album_subAlbums[]
   getCustomLink?(albumID: string): string
+  renderAlbumActions?(album: albumQuery_album_subAlbums): React.ReactNode
 }
 
-const AlbumBoxes = ({ error, albums, getCustomLink }: AlbumBoxesProps) => {
+const AlbumBoxes = ({
+  error,
+  albums,
+  getCustomLink,
+  renderAlbumActions,
+}: AlbumBoxesProps) => {
   if (error) return <div>Error {error.message}</div>
 
   let albumElements = []
@@ -19,6 +25,7 @@ const AlbumBoxes = ({ error, albums, getCustomLink }: AlbumBoxesProps) => {
         key={album.id}
         album={album}
         customLink={getCustomLink ? getCustomLink(album.id) : undefined}
+        actions={renderAlbumActions ? renderAlbumActions(album) : undefined}
       />
     ))
   } else {

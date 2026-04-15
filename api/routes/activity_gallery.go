@@ -7,13 +7,16 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 	graphql_auth "github.com/photoview/photoview/api/graphql/auth"
 	"github.com/photoview/photoview/api/graphql/models"
+	"github.com/photoview/photoview/api/scanner/face_detection"
 	"github.com/photoview/photoview/api/scanner/scanner_queue"
+	"github.com/photoview/photoview/api/utils"
 	"gorm.io/gorm"
 )
 
@@ -50,6 +53,7 @@ type uploadMediaResponse struct {
 func RegisterActivityGalleryRoutes(db *gorm.DB, router *mux.Router) {
 	router.HandleFunc("/config", activityGalleryConfigHandler(db)).Methods(http.MethodGet)
 	router.HandleFunc("/albums", createAlbumHandler(db)).Methods(http.MethodPost)
+	router.HandleFunc("/albums/{id}", deleteAlbumHandler(db)).Methods(http.MethodDelete)
 	router.HandleFunc("/upload", uploadMediaHandler(db)).Methods(http.MethodPost)
 }
 
@@ -235,6 +239,89 @@ func uploadMediaHandler(db *gorm.DB) http.HandlerFunc {
 			Message:      fmt.Sprintf("Uploaded %d file(s) and queued scanner", len(savedFiles)),
 			RelativePath: relativeAlbumPath,
 			Files:        savedFiles,
+		})
+	}
+}
+
+func deleteAlbumHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, ok := requireAdminUser(w, r)
+		if !ok {
+			return
+		}
+
+		albumID, err := strconv.Atoi(mux.Vars(r)["id"])
+		if err != nil || albumID <= 0 {
+			writeJSONError(w, http.StatusBadRequest, "invalid album id")
+			return
+		}
+
+		rootAlbums, err := userOwnedRootAlbums(db, user)
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		var targetAlbum models.Album
+		if err := db.First(&targetAlbum, albumID).Error; err != nil {
+			writeJSONError(w, http.StatusNotFound, "album not found")
+			return
+		}
+
+		owned := false
+		for _, root := range rootAlbums {
+			cleanRootPath := path.Clean(root.Path)
+			cleanAlbumPath := path.Clean(targetAlbum.Path)
+			if cleanAlbumPath == cleanRootPath || strings.HasPrefix(cleanAlbumPath, cleanRootPath+"/") {
+				owned = true
+				break
+			}
+		}
+
+		if !owned {
+			writeJSONError(w, http.StatusForbidden, "album is not owned by the current user")
+			return
+		}
+
+		if err := os.RemoveAll(targetAlbum.Path); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("could not delete album directory: %v", err))
+			return
+		}
+
+		children, err := targetAlbum.GetChildren(db, nil)
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("could not load album tree: %v", err))
+			return
+		}
+
+		deleteAlbumIDs := make([]int, 0, len(children))
+		for _, album := range children {
+			deleteAlbumIDs = append(deleteAlbumIDs, album.ID)
+		}
+
+		err = db.Transaction(func(tx *gorm.DB) error {
+			return tx.Delete(&models.Album{}, "id IN (?)", deleteAlbumIDs).Error
+		})
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("could not delete album records: %v", err))
+			return
+		}
+
+		for _, id := range deleteAlbumIDs {
+			cacheAlbumPath := path.Join(utils.MediaCachePath(), strconv.Itoa(id))
+			_ = os.RemoveAll(cacheAlbumPath)
+		}
+
+		if face_detection.GlobalFaceDetector != nil {
+			if err := face_detection.GlobalFaceDetector.ReloadFacesFromDatabase(db); err != nil {
+				writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("album deleted but face reload failed: %v", err))
+				return
+			}
+		}
+
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"message": "Album deleted successfully",
 		})
 	}
 }

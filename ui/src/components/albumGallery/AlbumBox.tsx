@@ -40,24 +40,29 @@ const AlbumBoxImage = ({ src, ...props }: AlbumBoxImageProps) => {
 type AlbumBoxProps = {
   album?: albumQuery_album_subAlbums
   customLink?: string
+  actions?: React.ReactNode
 }
 
-export const AlbumBox = ({ album, customLink, ...props }: AlbumBoxProps) => {
+export const AlbumBox = ({
+  album,
+  customLink,
+  actions,
+  ...props
+}: AlbumBoxProps) => {
   const wrapperClasses =
     'inline-block text-center text-gray-900 dark:text-gray-200 mx-3 my-2 xs:h-60 xs:w-[220px]'
 
   if (album) {
     return (
-      <Link
-        to={customLink || `/album/${album.id}`}
-        className={wrapperClasses}
-        {...props}
-      >
-        <AlbumBoxImage src={album.thumbnail?.thumbnail?.url} />
-        <p className="whitespace-nowrap overflow-hidden overflow-ellipsis">
-          {album.title}
-        </p>
-      </Link>
+      <div className={wrapperClasses} {...props}>
+        <Link to={customLink || `/album/${album.id}`} className="block">
+          <AlbumBoxImage src={album.thumbnail?.thumbnail?.url} />
+          <p className="whitespace-nowrap overflow-hidden overflow-ellipsis">
+            {album.title}
+          </p>
+        </Link>
+        {actions ? <div className="mt-2 flex justify-center">{actions}</div> : null}
+      </div>
     )
   }
 
