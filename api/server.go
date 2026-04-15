@@ -103,6 +103,9 @@ func main() {
 	authRouter := endpointRouter.PathPrefix("/auth").Subrouter()
 	routes.RegisterProviderAuthRoutes(db, authRouter)
 
+	activityGalleryRouter := endpointRouter.PathPrefix("/activity-gallery").Subrouter()
+	routes.RegisterActivityGalleryRoutes(db, activityGalleryRouter)
+
 	shouldServeUI := utils.ShouldServeUI()
 
 	if shouldServeUI {

@@ -9,6 +9,7 @@ This guide describes the recommended operating model for using Photoview in this
 - Removing image files from a folder removes photos after the next scan.
 - Removing the folder removes the album after the next scan.
 - Public album links from Photoview can then be copied into `siratwsv-main`.
+- The media root must be mounted read-write inside the Photoview container for album creation and file upload to work.
 
 ## Media root
 
@@ -82,12 +83,13 @@ Then run a new scan from the Photoview UI:
 ## First-run checklist
 
 1. Start the containers with Docker Compose.
-2. Complete the Photoview initial setup.
-3. Set `HOST_PHOTOVIEW_MEDIA_ROOT=/var/www/web-srn/activity_gallery_media`.
-4. Create the first album folder.
-5. Copy photos into that folder.
-6. Run `Scan all users`.
-7. Open the album in Photoview and copy the album link to `siratwsv-main`.
+2. Make sure the media root is mounted as `/photos` without the `:ro` suffix in `docker-compose.yml`.
+3. Complete the Photoview initial setup.
+4. Set `HOST_PHOTOVIEW_MEDIA_ROOT=/var/www/web-srn/activity_gallery_media`.
+5. Create the first album folder.
+6. Copy photos into that folder or upload them from the Settings page.
+7. Run `Scan all users`.
+8. Open the album in Photoview and copy the album link to `siratwsv-main`.
 
 ## Notes
 

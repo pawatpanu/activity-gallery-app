@@ -53,6 +53,50 @@
     "page_not_found": "ไม่พบหน้าที่ต้องการ"
   },
   "settings": {
+    "activity_gallery": {
+      "title": "คลังกิจกรรม",
+      "description": "สร้างอัลบั้มและอัปโหลดรูปภาพเข้า media root ของคลังกิจกรรมได้โดยตรง",
+      "root": {
+        "label": "พาธรากของคลังภาพ",
+        "description": "เลือก root path ที่ผู้ใช้นี้ถือสิทธิ์อยู่สำหรับเก็บอัลบั้มและไฟล์ที่อัปโหลด"
+      },
+      "create": {
+        "title": "สร้างอัลบั้ม",
+        "description": "สร้างโฟลเดอร์อัลบั้มใหม่ภายใต้ root path ที่เลือกไว้ โดย parent path ไม่บังคับ",
+        "parent_placeholder": "parent path แบบไม่บังคับ เช่น 2026-04-events",
+        "name_placeholder": "ชื่อโฟลเดอร์อัลบั้ม เช่น 2026-04-songkran-event",
+        "submit": "สร้างอัลบั้ม"
+      },
+      "upload": {
+        "title": "อัปโหลดรูปภาพ",
+        "description": "อัปโหลดรูปภาพหนึ่งไฟล์หรือหลายไฟล์เข้าอัลบั้มที่มีอยู่แล้วภายใต้ root path ที่เลือก",
+        "album_placeholder": "พาธอัลบั้ม เช่น 2026-04-songkran-event",
+        "submit": "อัปโหลดไฟล์"
+      },
+      "validation": {
+        "title": "ข้อมูลไม่ครบ",
+        "root_required": "กรุณาเลือก root path",
+        "album_name_required": "กรุณาระบุชื่ออัลบั้ม",
+        "album_path_required": "กรุณาระบุพาธอัลบั้ม",
+        "files_required": "กรุณาเลือกไฟล์อย่างน้อยหนึ่งไฟล์"
+      },
+      "create_success": {
+        "title": "สร้างอัลบั้มสำเร็จ"
+      },
+      "create_failed": {
+        "title": "สร้างอัลบั้มไม่สำเร็จ"
+      },
+      "upload_success": {
+        "title": "อัปโหลดสำเร็จ"
+      },
+      "upload_failed": {
+        "title": "อัปโหลดไม่สำเร็จ"
+      },
+      "load_failed": {
+        "title": "ไม่สามารถโหลดข้อมูลคลังกิจกรรมได้"
+      },
+      "no_roots": "ยังไม่มี root album ที่ผู้ใช้นี้ถือสิทธิ์อยู่"
+    },
     "concurrent_workers": {
       "description": "จำนวนงานสแกนสูงสุดที่อนุญาตให้ทำงานพร้อมกัน",
       "title": "จำนวน worker ของตัวสแกน"

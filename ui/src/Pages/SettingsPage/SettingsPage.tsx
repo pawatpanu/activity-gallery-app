@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 import { useIsAdmin } from '../../components/routes/AuthorizedRoute'
 import Layout from '../../components/layout/Layout'
+import ActivityGallerySection from './ActivityGallerySection'
 import ScannerSection from './ScannerSection'
 import UserPreferences from './UserPreferences'
 import UsersTable from './Users/UsersTable'
@@ -44,6 +45,7 @@ const SettingsPage = () => {
       <UserPreferences />
       {isAdmin && (
         <>
+          <ActivityGallerySection />
           <ScannerSection />
           <UsersTable />
         </>

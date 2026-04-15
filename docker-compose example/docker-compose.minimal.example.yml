@@ -77,7 +77,7 @@ services:
       ## If you mount several folders, make sure that there are no direct mappings to the media root folder.
       ## This means that you need to also modify the container path of the HOST_PHOTOVIEW_MEDIA_ROOT
       ## to something like '/photos/main'. Note that this new name ('main' in this example) will become an album in Photoview.
-      - "${HOST_PHOTOVIEW_MEDIA_ROOT}:/photos:ro"
+      - "${HOST_PHOTOVIEW_MEDIA_ROOT}:/photos"
       ## *Additional* media folders can be mounted like this (set the variable in .env file)
       ## Note that a mount cannot be located in a subfolder of another mount.
       # - "${HOST_PHOTOVIEW_MEDIA_FAMILY}:/photos/Family:ro"

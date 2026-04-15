@@ -76,6 +76,12 @@ Then copy some test photos into:
 
 And go to `Settings` and click `Scan All`.
 
+If you want to use the web-based album creation and file upload features, make sure the media mount in `docker-compose.yml` is writable:
+
+```yaml
+- "${HOST_PHOTOVIEW_MEDIA_ROOT}:/photos"
+```
+
 ## 7. Later, when the domain is ready
 
 Switch to:

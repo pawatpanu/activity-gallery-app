@@ -52,7 +52,7 @@ services:
     volumes:
       - "/etc/localtime:/etc/localtime:ro"
       - "${HOST_PHOTOVIEW_LOCATION}/storage:/home/photoview/media-cache"
-      - "${HOST_PHOTOVIEW_MEDIA_ROOT}:/photos:ro"
+      - "${HOST_PHOTOVIEW_MEDIA_ROOT}:/photos"
 
   mariadb:
     image: mariadb:lts

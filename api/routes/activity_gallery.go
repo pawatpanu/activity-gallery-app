@@ -1,0 +1,360 @@
+package routes
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path"
+	"strings"
+	"time"
+
+	"github.com/gorilla/mux"
+	graphql_auth "github.com/photoview/photoview/api/graphql/auth"
+	"github.com/photoview/photoview/api/graphql/models"
+	"github.com/photoview/photoview/api/scanner/scanner_queue"
+	"gorm.io/gorm"
+)
+
+const maxUploadMemory = 256 << 20 // 256 MB
+
+type activityGalleryRoot struct {
+	Title string `json:"title"`
+	Path  string `json:"path"`
+}
+
+type activityGalleryConfigResponse struct {
+	Roots []activityGalleryRoot `json:"roots"`
+}
+
+type createAlbumRequest struct {
+	RootPath   string `json:"rootPath"`
+	ParentPath string `json:"parentPath"`
+	AlbumName  string `json:"albumName"`
+}
+
+type createAlbumResponse struct {
+	Success      bool   `json:"success"`
+	Message      string `json:"message"`
+	RelativePath string `json:"relativePath"`
+}
+
+type uploadMediaResponse struct {
+	Success      bool     `json:"success"`
+	Message      string   `json:"message"`
+	RelativePath string   `json:"relativePath"`
+	Files        []string `json:"files"`
+}
+
+func RegisterActivityGalleryRoutes(db *gorm.DB, router *mux.Router) {
+	router.HandleFunc("/config", activityGalleryConfigHandler(db)).Methods(http.MethodGet)
+	router.HandleFunc("/albums", createAlbumHandler(db)).Methods(http.MethodPost)
+	router.HandleFunc("/upload", uploadMediaHandler(db)).Methods(http.MethodPost)
+}
+
+func activityGalleryConfigHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, ok := requireAdminUser(w, r)
+		if !ok {
+			return
+		}
+
+		roots, err := userOwnedRootAlbums(db, user)
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		resp := activityGalleryConfigResponse{
+			Roots: make([]activityGalleryRoot, 0, len(roots)),
+		}
+		for _, root := range roots {
+			resp.Roots = append(resp.Roots, activityGalleryRoot{
+				Title: root.Title,
+				Path:  root.Path,
+			})
+		}
+
+		writeJSON(w, http.StatusOK, resp)
+	}
+}
+
+func createAlbumHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, ok := requireAdminUser(w, r)
+		if !ok {
+			return
+		}
+
+		var req createAlbumRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		rootPath, err := authorizedRootPath(db, user, req.RootPath)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		relativeParentPath, err := normalizeRelativePath(req.ParentPath)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		albumName := strings.TrimSpace(req.AlbumName)
+		if albumName == "" {
+			writeJSONError(w, http.StatusBadRequest, "album name is required")
+			return
+		}
+		if strings.Contains(albumName, "/") || strings.Contains(albumName, "\\") || albumName == "." || albumName == ".." {
+			writeJSONError(w, http.StatusBadRequest, "album name must not contain path separators")
+			return
+		}
+
+		targetDir, relativeAlbumPath, err := resolveAuthorizedChildPath(rootPath, relativeParentPath, albumName)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		if err := os.MkdirAll(targetDir, 0o755); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("could not create album directory: %v", err))
+			return
+		}
+
+		if err := scanner_queue.AddUserToQueue(user); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("album created but scanner queue failed: %v", err))
+			return
+		}
+
+		writeJSON(w, http.StatusOK, createAlbumResponse{
+			Success:      true,
+			Message:      "Album created and scanner queued",
+			RelativePath: relativeAlbumPath,
+		})
+	}
+}
+
+func uploadMediaHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, ok := requireAdminUser(w, r)
+		if !ok {
+			return
+		}
+
+		if err := r.ParseMultipartForm(maxUploadMemory); err != nil {
+			writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("invalid multipart form: %v", err))
+			return
+		}
+
+		rootPath, err := authorizedRootPath(db, user, r.FormValue("rootPath"))
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		relativeAlbumPath, err := normalizeRelativePath(r.FormValue("albumPath"))
+		if err != nil || relativeAlbumPath == "" {
+			writeJSONError(w, http.StatusBadRequest, "album path is required")
+			return
+		}
+
+		targetDir, _, err := resolveAuthorizedChildPath(rootPath, relativeAlbumPath, "")
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		stat, err := os.Stat(targetDir)
+		if err != nil || !stat.IsDir() {
+			writeJSONError(w, http.StatusBadRequest, "target album directory does not exist")
+			return
+		}
+
+		files := r.MultipartForm.File["files"]
+		if len(files) == 0 {
+			writeJSONError(w, http.StatusBadRequest, "at least one file is required")
+			return
+		}
+
+		savedFiles := make([]string, 0, len(files))
+		for _, fileHeader := range files {
+			src, err := fileHeader.Open()
+			if err != nil {
+				writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("could not open upload: %v", err))
+				return
+			}
+
+			func() {
+				defer src.Close()
+				fileName := sanitizeUploadFilename(fileHeader.Filename)
+				if fileName == "" {
+					err = fmt.Errorf("invalid upload filename")
+					return
+				}
+
+				destPath, uniqueName, pathErr := uniqueDestinationPath(targetDir, fileName)
+				if pathErr != nil {
+					err = pathErr
+					return
+				}
+
+				dst, createErr := os.Create(destPath)
+				if createErr != nil {
+					err = createErr
+					return
+				}
+				defer dst.Close()
+
+				if _, copyErr := io.Copy(dst, src); copyErr != nil {
+					err = copyErr
+					return
+				}
+
+				_ = os.Chmod(destPath, 0o644)
+				savedFiles = append(savedFiles, uniqueName)
+			}()
+
+			if err != nil {
+				writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("could not save upload: %v", err))
+				return
+			}
+		}
+
+		if err := scanner_queue.AddUserToQueue(user); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("files uploaded but scanner queue failed: %v", err))
+			return
+		}
+
+		writeJSON(w, http.StatusOK, uploadMediaResponse{
+			Success:      true,
+			Message:      fmt.Sprintf("Uploaded %d file(s) and queued scanner", len(savedFiles)),
+			RelativePath: relativeAlbumPath,
+			Files:        savedFiles,
+		})
+	}
+}
+
+func requireAdminUser(w http.ResponseWriter, r *http.Request) (*models.User, bool) {
+	user := graphql_auth.UserFromContext(r.Context())
+	if user == nil {
+		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+		return nil, false
+	}
+	if !user.Admin {
+		writeJSONError(w, http.StatusForbidden, "admin privileges required")
+		return nil, false
+	}
+	return user, true
+}
+
+func userOwnedRootAlbums(db *gorm.DB, user *models.User) ([]*models.Album, error) {
+	var albums []*models.Album
+	err := db.Model(user).
+		Where("albums.parent_album_id NOT IN (?)",
+			db.Table("user_albums").
+				Select("albums.id").
+				Joins("JOIN albums ON albums.id = user_albums.album_id AND user_albums.user_id = ?", user.ID),
+		).Or("albums.parent_album_id IS NULL").Order("path ASC").
+		Association("Albums").Find(&albums)
+	return albums, err
+}
+
+func authorizedRootPath(db *gorm.DB, user *models.User, rootPath string) (string, error) {
+	rootPath = path.Clean(strings.TrimSpace(rootPath))
+	if rootPath == "." || rootPath == "" {
+		return "", fmt.Errorf("root path is required")
+	}
+
+	roots, err := userOwnedRootAlbums(db, user)
+	if err != nil {
+		return "", err
+	}
+	for _, root := range roots {
+		if path.Clean(root.Path) == rootPath {
+			return rootPath, nil
+		}
+	}
+
+	return "", fmt.Errorf("root path is not owned by the current user")
+}
+
+func normalizeRelativePath(relativePath string) (string, error) {
+	relativePath = strings.TrimSpace(strings.ReplaceAll(relativePath, "\\", "/"))
+	if relativePath == "" {
+		return "", nil
+	}
+	if strings.HasPrefix(relativePath, "/") {
+		return "", fmt.Errorf("relative path must not start with /")
+	}
+	cleaned := path.Clean(relativePath)
+	if cleaned == "." {
+		return "", nil
+	}
+	if cleaned == ".." || strings.HasPrefix(cleaned, "../") {
+		return "", fmt.Errorf("relative path must stay inside the media root")
+	}
+	return cleaned, nil
+}
+
+func resolveAuthorizedChildPath(rootPath string, relativeParentPath string, childName string) (string, string, error) {
+	rootPath = path.Clean(rootPath)
+	relativePath := relativeParentPath
+	if childName != "" {
+		if relativePath == "" {
+			relativePath = childName
+		} else {
+			relativePath = path.Join(relativePath, childName)
+		}
+	}
+
+	fullPath := path.Clean(path.Join(rootPath, relativePath))
+	if fullPath != rootPath && !strings.HasPrefix(fullPath, rootPath+"/") {
+		return "", "", fmt.Errorf("target path escapes the media root")
+	}
+
+	relativeResolved := strings.TrimPrefix(strings.TrimPrefix(fullPath, rootPath), "/")
+	return fullPath, relativeResolved, nil
+}
+
+func sanitizeUploadFilename(name string) string {
+	name = strings.TrimSpace(path.Base(strings.ReplaceAll(name, "\\", "/")))
+	if name == "." || name == ".." {
+		return ""
+	}
+	return name
+}
+
+func uniqueDestinationPath(dir string, fileName string) (string, string, error) {
+	ext := path.Ext(fileName)
+	base := strings.TrimSuffix(fileName, ext)
+	candidate := fileName
+
+	for i := 0; i < 1000; i++ {
+		fullPath := path.Join(dir, candidate)
+		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+			return fullPath, candidate, nil
+		}
+
+		candidate = fmt.Sprintf("%s-%d-%d%s", base, time.Now().Unix(), i+1, ext)
+	}
+
+	return "", "", fmt.Errorf("could not resolve unique filename for %s", fileName)
+}
+
+func writeJSON(w http.ResponseWriter, statusCode int, payload interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_ = json.NewEncoder(w).Encode(payload)
+}
+
+func writeJSONError(w http.ResponseWriter, statusCode int, message string) {
+	writeJSON(w, statusCode, map[string]interface{}{
+		"success": false,
+		"message": message,
+	})
+}
