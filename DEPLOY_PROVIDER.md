@@ -30,6 +30,7 @@ Alternative:
 - use [deploy/provider-uat.env.example](/abs/path/c:/xampp/htdocs/photo_gallery/deploy/provider-uat.env.example) as your UAT starting point
 - use [deploy/provider-prd.env.example](/abs/path/c:/xampp/htdocs/photo_gallery/deploy/provider-prd.env.example) as your PRD starting point
 - use [deploy/docker-compose.provider.example.yml](/abs/path/c:/xampp/htdocs/photo_gallery/deploy/docker-compose.provider.example.yml) as the recommended Provider deployment compose file
+- if you do not have a public domain yet, use [LAN_SETUP.md](./LAN_SETUP.md) with [deploy/provider-lan.env.example](./deploy/provider-lan.env.example) and [deploy/docker-compose.provider.lan.example.yml](./deploy/docker-compose.provider.lan.example.yml)
 
 ## 2. Edit `.env`
 
