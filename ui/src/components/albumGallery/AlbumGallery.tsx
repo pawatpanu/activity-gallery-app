@@ -114,8 +114,7 @@ const AlbumGallery = React.forwardRef(
       <div ref={ref}>
         <div className="mb-6">
           <div className="page-subtitle max-w-2xl">
-            Browse nested albums, review imported media, and manage the
-            collection in a calmer, more polished workspace.
+            จัดการอัลบั้มย่อยและรูปภาพภายใต้กิจกรรมนี้ได้ในหน้าจอเดียว พร้อมเพิ่มรูปและดูแลเนื้อหาอย่างเป็นระเบียบ
           </div>
         </div>
         {showFilter && (

@@ -96,6 +96,11 @@ const AlbumTitle = ({
       </li>
     ))
 
+  const activityLabel =
+    path.length > 0
+      ? path[path.length - 1]?.title
+      : null
+
   if (!disableLink) {
     title = <Link to={`/album/${album.id}`}>{title}</Link>
   }
@@ -104,7 +109,9 @@ const AlbumTitle = ({
     <div className="hero-panel mb-8 flex min-h-[112px] items-end justify-between gap-4">
       <div className="min-w-0">
         <div className="mb-2 text-[0.72rem] font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-          Album workspace
+          {activityLabel
+            ? `กิจกรรม: ${activityLabel}`
+            : 'พื้นที่จัดการอัลบั้ม'}
         </div>
         <nav
           aria-label="Album breadcrumb"
@@ -116,8 +123,7 @@ const AlbumTitle = ({
           {title}
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
-          Review imported media, browse related subalbums, and manage this
-          collection from a calm, premium workspace.
+          อัลบั้มนี้อยู่ภายใต้กิจกรรมเดียวกันกับอัลบั้มที่เกี่ยวข้อง คุณสามารถเพิ่มรูป ลบรูป และจัดการอัลบั้มได้จากหน้านี้
         </p>
       </div>
       {authToken() && (

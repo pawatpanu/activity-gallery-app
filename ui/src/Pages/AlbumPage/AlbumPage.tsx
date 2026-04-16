@@ -150,10 +150,10 @@ function AlbumPage() {
       }
 
       addMessage(
-        t('albums_page.delete.success.title', 'Album deleted'),
+        t('albums_page.delete.success.title', 'ลบอัลบั้มสำเร็จ'),
         t(
           'albums_page.delete.success.description',
-          'The album and its images were removed successfully.'
+          'ลบอัลบั้มและรูปภาพภายในเรียบร้อยแล้ว'
         )
       )
       if (albumToDelete.isCurrentAlbum) {
@@ -163,7 +163,7 @@ function AlbumPage() {
       }
     } catch (error) {
       addMessage(
-        t('albums_page.delete.failed.title', 'Delete album failed'),
+        t('albums_page.delete.failed.title', 'ลบอัลบั้มไม่สำเร็จ'),
         error instanceof Error ? error.message : String(error),
         true
       )
@@ -198,13 +198,13 @@ function AlbumPage() {
                 variant="default"
                 onClick={() => setUploadModalOpen(true)}
               >
-                {t('albums_page.media_upload.open_modal', 'Upload photos')}
+                {t('albums_page.media_upload.open_modal', 'เพิ่มรูป')}
               </Button>
               <Button
                 variant="positive"
                 onClick={() => setCreateModalOpen(true)}
               >
-                {t('albums_page.activity_gallery.open_modal', 'Add album')}
+                {t('albums_page.activity_gallery.open_modal', 'เพิ่มอัลบั้ม')}
               </Button>
               <Button
                 variant="negative"
@@ -216,7 +216,7 @@ function AlbumPage() {
                   })
                 }
               >
-                {t('albums_page.delete.action', 'Delete')}
+                {t('albums_page.delete.action', 'ลบ')}
               </Button>
             </>
           ) : null
@@ -237,7 +237,7 @@ function AlbumPage() {
                     })
                   }
                 >
-                  {t('albums_page.delete.action', 'Delete')}
+                  {t('albums_page.delete.action', 'ลบ')}
                 </Button>
               )
             : undefined
@@ -270,12 +270,12 @@ function AlbumPage() {
         onClose={() => {
           if (!deletingAlbum) setAlbumToDelete(null)
         }}
-        title={t('albums_page.delete.title', 'Delete album')}
+        title={t('albums_page.delete.title', 'ลบอัลบั้ม')}
         description={
           <div>
             {t(
               'albums_page.delete.description',
-              'Are you sure you want to delete this album and all images inside it?'
+              'ยืนยันการลบอัลบั้มนี้และรูปภาพทั้งหมดภายในอัลบั้มใช่หรือไม่'
             )}
             {albumToDelete ? (
               <div className="mt-2 font-semibold">{albumToDelete.title}</div>
@@ -285,7 +285,7 @@ function AlbumPage() {
         actions={[
           {
             key: 'cancel',
-            label: t('general.action.cancel', 'Cancel'),
+            label: t('general.action.cancel', 'ยกเลิก'),
             onClick: () => {
               if (!deletingAlbum) setAlbumToDelete(null)
             },
@@ -293,7 +293,7 @@ function AlbumPage() {
           },
           {
             key: 'delete',
-            label: t('albums_page.delete.confirm', 'Delete album'),
+            label: t('albums_page.delete.confirm', 'ลบอัลบั้ม'),
             onClick: () => {
               void deleteAlbum()
             },

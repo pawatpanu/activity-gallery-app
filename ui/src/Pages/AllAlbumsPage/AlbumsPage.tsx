@@ -127,13 +127,13 @@ const AlbumsPage = () => {
   }
 
   return (
-    <Layout title="Albums">
+    <Layout title={t('sidemenu.albums', 'อัลบั้ม')}>
       <div className="mb-8">
-        <h1 className="page-title">{t('sidemenu.albums', 'Albums')}</h1>
+        <h1 className="page-title">{t('sidemenu.albums', 'อัลบั้ม')}</h1>
         <p className="page-subtitle">
           {t(
             'albums_page.description',
-            'Organize curated collections, create new albums, and manage gallery content from one premium workspace.'
+            'จัดการคลังภาพแบบ กิจกรรม > อัลบั้ม > รูปภาพ สร้างอัลบั้มใหม่ภายใต้กิจกรรม และดูแลรูปทั้งหมดได้จากหน้าจอเดียว'
           )}
         </p>
       </div>
@@ -147,7 +147,7 @@ const AlbumsPage = () => {
         {isAdmin && (
           <div className="toolbar-actions">
             <Button variant="positive" onClick={() => setCreateModalOpen(true)}>
-              {t('albums_page.activity_gallery.open_modal', 'Add album')}
+              {t('albums_page.activity_gallery.open_modal', 'เพิ่มอัลบั้ม')}
             </Button>
           </div>
         )}
@@ -162,7 +162,7 @@ const AlbumsPage = () => {
                   variant="negative"
                   onClick={() => setAlbumToDelete({ id: album.id, title: album.title })}
                 >
-                  {t('albums_page.delete.action', 'Delete')}
+                  {t('albums_page.delete.action', 'ลบ')}
                 </Button>
               )
             : undefined
@@ -182,12 +182,12 @@ const AlbumsPage = () => {
         onClose={() => {
           if (!deletingAlbum) setAlbumToDelete(null)
         }}
-        title={t('albums_page.delete.title', 'Delete album')}
+        title={t('albums_page.delete.title', 'ลบอัลบั้ม')}
         description={
           <div>
             {t(
               'albums_page.delete.description',
-              'Are you sure you want to delete this album and all images inside it?'
+              'ยืนยันการลบอัลบั้มนี้และรูปภาพทั้งหมดภายในอัลบั้มใช่หรือไม่'
             )}
             {albumToDelete ? (
               <div className="mt-2 font-semibold">{albumToDelete.title}</div>
@@ -197,7 +197,7 @@ const AlbumsPage = () => {
         actions={[
           {
             key: 'cancel',
-            label: t('general.action.cancel', 'Cancel'),
+            label: t('general.action.cancel', 'ยกเลิก'),
             onClick: () => {
               if (!deletingAlbum) setAlbumToDelete(null)
             },
@@ -205,7 +205,7 @@ const AlbumsPage = () => {
           },
           {
             key: 'delete',
-            label: t('albums_page.delete.confirm', 'Delete album'),
+            label: t('albums_page.delete.confirm', 'ลบอัลบั้ม'),
             onClick: () => {
               void deleteAlbum()
             },
