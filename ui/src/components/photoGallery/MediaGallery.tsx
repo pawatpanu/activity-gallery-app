@@ -72,6 +72,12 @@ const MediaGallery = ({
 
   const { updateSidebar } = useContext(SidebarContext)
 
+  React.useEffect(() => {
+    if (presenting) {
+      updateSidebar(null)
+    }
+  }, [presenting, updateSidebar])
+
   let mediaElements = []
   if (media) {
     mediaElements = media.map((media, index) => {
@@ -101,6 +107,7 @@ const MediaGallery = ({
             })
           }}
           clickPresent={() => {
+            updateSidebar(null)
             openPresentModeAction({ dispatchMedia, activeIndex: index })
           }}
         />

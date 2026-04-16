@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import styled, { createGlobalStyle } from 'styled-components'
 import PresentNavigationOverlay from './PresentNavigationOverlay'
 import PresentMedia from './PresentMedia'
@@ -13,7 +14,7 @@ const StyledContainer = styled.div`
   color: white;
   top: 0;
   left: 0;
-  z-index: 100;
+  z-index: 200;
 `
 
 const PreventScroll = createGlobalStyle`
@@ -67,7 +68,11 @@ const PresentView = ({
     }
   })
 
-  return (
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  return createPortal(
     <StyledContainer className={className}>
       <PreventScroll />
       <PresentNavigationOverlay
@@ -76,7 +81,8 @@ const PresentView = ({
       >
         <PresentMedia media={activeMedia} imageLoaded={imageLoaded} />
       </PresentNavigationOverlay>
-    </StyledContainer>
+    </StyledContainer>,
+    document.body
   )
 }
 
