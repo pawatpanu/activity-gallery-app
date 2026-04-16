@@ -8,6 +8,11 @@ import Dropdown, { DropdownItem } from '../../primitives/form/Dropdown'
 import { TextField } from '../../primitives/form/Input'
 import Loader from '../../primitives/Loader'
 import Modal from '../../primitives/Modal'
+import {
+  ActivityGalleryActionResponse,
+  ACTIVITY_GALLERY_CONFIG_URL,
+  uploadFilesWithProgress,
+} from './uploadWithProgress'
 
 type ActivityGalleryRoot = {
   title: string
@@ -19,25 +24,18 @@ type ActivityGalleryConfigResponse = {
   message?: string
 }
 
-type ActivityGalleryActionResponse = {
-  success: boolean
-  message: string
-  relativePath?: string
-  files?: string[]
-}
-
 type ActivityGalleryModalProps = {
   open: boolean
   onClose(): void
   onCompleted?(): void
+  parentAlbumId?: string
+  parentAlbumTitle?: string
 }
 
-const ACTIVITY_GALLERY_CONFIG_URL = urlJoin(API_ENDPOINT, '/activity-gallery/config')
 const ACTIVITY_GALLERY_CREATE_ALBUM_URL = urlJoin(
   API_ENDPOINT,
   '/activity-gallery/albums'
 )
-const ACTIVITY_GALLERY_UPLOAD_URL = urlJoin(API_ENDPOINT, '/activity-gallery/upload')
 
 const addMessage = (header: string, content: string, negative = false) => {
   MessageState.add({
@@ -56,12 +54,16 @@ const ActivityGalleryModal = ({
   open,
   onClose,
   onCompleted,
+  parentAlbumId,
+  parentAlbumTitle,
 }: ActivityGalleryModalProps) => {
   const { t } = useTranslation()
   const [roots, setRoots] = useState<ActivityGalleryRoot[]>([])
   const [selectedRoot, setSelectedRoot] = useState('')
   const [loadingRoots, setLoadingRoots] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [uploadStage, setUploadStage] = useState('')
   const [parentPath, setParentPath] = useState('')
   const [albumName, setAlbumName] = useState('')
   const [mainImage, setMainImage] = useState<File | null>(null)
@@ -121,6 +123,8 @@ const ActivityGalleryModal = ({
     setAlbumName('')
     setMainImage(null)
     setAlbumImages(null)
+    setUploadProgress(null)
+    setUploadStage('')
     if (mainImageInputRef.current) {
       mainImageInputRef.current.value = ''
     }
@@ -134,26 +138,6 @@ const ActivityGalleryModal = ({
       resetForm()
     }
   }, [open])
-
-  const uploadFiles = async (rootPath: string, albumPath: string, files: File[]) => {
-    if (files.length === 0) return
-
-    const formData = new FormData()
-    formData.append('rootPath', rootPath)
-    formData.append('albumPath', albumPath)
-    files.forEach(file => formData.append('files', file))
-
-    const response = await fetch(ACTIVITY_GALLERY_UPLOAD_URL, {
-      method: 'POST',
-      credentials: 'include',
-      body: formData,
-    })
-
-    const data = (await response.json()) as ActivityGalleryActionResponse
-    if (!response.ok || !data.success) {
-      throw new Error(data.message || 'Could not upload files')
-    }
-  }
 
   const createAlbum = async () => {
     if (submitting) return
@@ -177,8 +161,14 @@ const ActivityGalleryModal = ({
     }
 
     setSubmitting(true)
+    setUploadProgress(null)
+    setUploadStage('')
     try {
-      const response = await fetch(ACTIVITY_GALLERY_CREATE_ALBUM_URL, {
+      const targetCreateUrl = parentAlbumId
+        ? urlJoin(ACTIVITY_GALLERY_CREATE_ALBUM_URL, parentAlbumId, 'children')
+        : ACTIVITY_GALLERY_CREATE_ALBUM_URL
+
+      const response = await fetch(targetCreateUrl, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -196,12 +186,73 @@ const ActivityGalleryModal = ({
         throw new Error(data.message || 'Could not create album')
       }
 
+      const createdRootPath = data.rootPath || selectedRoot
+      const uploadBatches = [
+        {
+          files: mainImage ? [mainImage] : [],
+          label: t(
+            'albums_page.activity_gallery.progress.cover',
+            'Uploading cover image'
+          ),
+        },
+        {
+          files: albumImages ? Array.from(albumImages) : [],
+          label: t(
+            'albums_page.activity_gallery.progress.media',
+            'Uploading album images'
+          ),
+        },
+      ].filter(batch => batch.files.length > 0)
+
+      const totalBytes = uploadBatches.reduce(
+        (sum, batch) => sum + batch.files.reduce((acc, file) => acc + file.size, 0),
+        0
+      )
+      let completedBytes = 0
+
+      const trackBatchProgress = (stageLabel: string, files: File[]) => {
+        const batchBytes = files.reduce((acc, file) => acc + file.size, 0)
+
+        setUploadStage(stageLabel)
+        return (loaded: number, total: number) => {
+          const effectiveTotal = total || batchBytes || 1
+          const normalizedLoaded = Math.min(loaded, effectiveTotal)
+          const percent = totalBytes
+            ? Math.round(((completedBytes + normalizedLoaded) / totalBytes) * 100)
+            : 100
+          setUploadProgress(percent)
+        }
+      }
+
       if (mainImage) {
-        await uploadFiles(selectedRoot, data.relativePath, [mainImage])
+        await uploadFilesWithProgress(
+          createdRootPath,
+          data.relativePath,
+          [mainImage],
+          trackBatchProgress(
+            t('albums_page.activity_gallery.progress.cover', 'Uploading cover image'),
+            [mainImage]
+          )
+        )
+        completedBytes += mainImage.size
       }
 
       if (albumImages && albumImages.length > 0) {
-        await uploadFiles(selectedRoot, data.relativePath, Array.from(albumImages))
+        const files = Array.from(albumImages)
+        await uploadFilesWithProgress(
+          createdRootPath,
+          data.relativePath,
+          files,
+          trackBatchProgress(
+            t('albums_page.activity_gallery.progress.media', 'Uploading album images'),
+            files
+          )
+        )
+        completedBytes += files.reduce((acc, file) => acc + file.size, 0)
+      }
+
+      if (uploadBatches.length > 0) {
+        setUploadProgress(100)
       }
 
       addMessage(
@@ -234,8 +285,12 @@ const ActivityGalleryModal = ({
       }}
       title={t('albums_page.activity_gallery.modal.title', 'Create album')}
       description={t(
-        'albums_page.activity_gallery.modal.description',
-        'Create a new album, choose a main image for the cover, and add more images in one step.'
+        parentAlbumId
+          ? 'albums_page.activity_gallery.modal.description_child'
+          : 'albums_page.activity_gallery.modal.description',
+        parentAlbumId
+          ? `Create a new album inside ${parentAlbumTitle || 'this collection'}, choose a main image for the cover, and add more images in one step.`
+          : 'Create a new album, choose a main image for the cover, and add more images in one step.'
       )}
       actions={[
         {
@@ -260,31 +315,35 @@ const ActivityGalleryModal = ({
       <div className="w-[min(92vw,42rem)]">
         <Loader active={loadingRoots} />
         {rootItems.length > 0 ? (
-          <div className="flex flex-col gap-3">
-            <div>
-              <label htmlFor="activity_gallery_modal_root">
-                <span className="block text-xs uppercase font-semibold mb-1">
-                  {t('albums_page.activity_gallery.root.label', 'Gallery root path')}
-                </span>
-              </label>
-              <Dropdown
-                id="activity_gallery_modal_root"
-                items={rootItems}
-                selected={selectedRoot}
-                setSelected={setSelectedRoot}
-              />
-            </div>
+          <div className="control-stack">
+            {!parentAlbumId && (
+              <div>
+                <label htmlFor="activity_gallery_modal_root">
+                  <span className="field-label">
+                    {t('albums_page.activity_gallery.root.label', 'Gallery root path')}
+                  </span>
+                </label>
+                <Dropdown
+                  id="activity_gallery_modal_root"
+                  items={rootItems}
+                  selected={selectedRoot}
+                  setSelected={setSelectedRoot}
+                />
+              </div>
+            )}
 
-            <TextField
-              label={t('albums_page.activity_gallery.parent_path.label', 'Parent path')}
-              value={parentPath}
-              onChange={event => setParentPath(event.target.value)}
-              placeholder={t(
-                'albums_page.activity_gallery.parent_path.placeholder',
-                'optional parent path, e.g. 2026-04-events'
-              )}
-              fullWidth
-            />
+            {!parentAlbumId && (
+              <TextField
+                label={t('albums_page.activity_gallery.parent_path.label', 'Parent path')}
+                value={parentPath}
+                onChange={event => setParentPath(event.target.value)}
+                placeholder={t(
+                  'albums_page.activity_gallery.parent_path.placeholder',
+                  'optional parent path, e.g. 2026-04-events'
+                )}
+                fullWidth
+              />
+            )}
 
             <TextField
               label={t('albums_page.activity_gallery.album_name.label', 'Album name')}
@@ -298,19 +357,20 @@ const ActivityGalleryModal = ({
             />
 
             <label className="block text-sm">
-              <span className="block text-xs uppercase font-semibold mb-1">
+              <span className="field-label">
                 {t('albums_page.activity_gallery.main_image.label', 'Main image')}
               </span>
               <input
                 ref={mainImageInputRef}
                 type="file"
                 accept="image/*"
+                className="file-picker"
                 onChange={event => setMainImage(event.target.files?.[0] ?? null)}
               />
             </label>
 
             <label className="block text-sm">
-              <span className="block text-xs uppercase font-semibold mb-1">
+              <span className="field-label">
                 {t('albums_page.activity_gallery.album_images.label', 'Album images')}
               </span>
               <input
@@ -318,9 +378,29 @@ const ActivityGalleryModal = ({
                 type="file"
                 multiple
                 accept="image/*"
+                className="file-picker"
                 onChange={event => setAlbumImages(event.target.files)}
               />
             </label>
+
+            {submitting && uploadProgress !== null && (
+              <div className="rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">
+                    {uploadStage || t('albums_page.activity_gallery.progress.default', 'Uploading files')}
+                  </div>
+                  <div className="text-sm text-[var(--text-secondary)]">
+                    {uploadProgress}%
+                  </div>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[rgba(127,139,163,0.18)]">
+                  <div
+                    className="h-full rounded-full bg-[var(--brand-surface)] transition-all duration-200"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           !loadingRoots && (

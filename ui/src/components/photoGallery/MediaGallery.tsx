@@ -21,7 +21,7 @@ const Gallery = styled.div`
   align-items: center;
   min-height: 200px;
   position: relative;
-  margin: -4px;
+  margin: -4px -2px;
 
   @media (max-width: 1000px) {
     /* Compensate for tab bar on mobile */
@@ -58,9 +58,14 @@ type MediaGalleryProps = {
   loading: boolean
   mediaState: MediaGalleryState
   dispatchMedia: React.Dispatch<PhotoGalleryAction>
+  onMediaDeleted?(mediaId: string): void
 }
 
-const MediaGallery = ({ mediaState, dispatchMedia }: MediaGalleryProps) => {
+const MediaGallery = ({
+  mediaState,
+  dispatchMedia,
+  onMediaDeleted,
+}: MediaGalleryProps) => {
   const [markFavorite] = useMarkFavoriteMutation()
 
   const { media, activeIndex, presenting } = mediaState
@@ -82,7 +87,12 @@ const MediaGallery = ({ mediaState, dispatchMedia }: MediaGalleryProps) => {
               type: 'selectImage',
               index,
             })
-            updateSidebar(<MediaSidebar media={mediaState.media[index]} />)
+            updateSidebar(
+              <MediaSidebar
+                media={mediaState.media[index]}
+                onDeleted={() => onMediaDeleted?.(mediaState.media[index].id)}
+              />
+            )
           }}
           clickFavorite={() => {
             toggleFavoriteAction({

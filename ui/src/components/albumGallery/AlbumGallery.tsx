@@ -49,6 +49,11 @@ type AlbumGalleryProps = {
   ordering?: MediaOrdering
   onlyFavorites?: boolean
   onFavorite?(): void
+  titleActions?: React.ReactNode
+  renderSubAlbumActions?(
+    album: AlbumGalleryFields['subAlbums'][number]
+  ): React.ReactNode
+  onMediaDeleted?(mediaId: string): void
 }
 
 const AlbumGallery = React.forwardRef(
@@ -62,6 +67,9 @@ const AlbumGallery = React.forwardRef(
       setOrdering,
       ordering,
       onlyFavorites = false,
+      titleActions,
+      renderSubAlbumActions,
+      onMediaDeleted,
     }: AlbumGalleryProps,
     ref: React.ForwardedRef<HTMLDivElement>
   ) => {
@@ -92,6 +100,7 @@ const AlbumGallery = React.forwardRef(
           <AlbumBoxes
             albums={album.subAlbums}
             getCustomLink={customAlbumLink}
+            renderAlbumActions={renderSubAlbumActions}
           />
         )
       }
@@ -101,21 +110,32 @@ const AlbumGallery = React.forwardRef(
 
     return (
       <div ref={ref}>
+        <div className="mb-6">
+          <div className="page-subtitle max-w-2xl">
+            Browse nested albums, review imported media, and manage the
+            collection in a calmer, more polished workspace.
+          </div>
+        </div>
         {showFilter && (
-          <AlbumFilter
-            onlyFavorites={onlyFavorites}
-            setOnlyFavorites={setOnlyFavorites}
-            setOrdering={setOrdering}
-            ordering={ordering}
-          />
+          <div className="content-toolbar mb-6">
+            <AlbumFilter
+              onlyFavorites={onlyFavorites}
+              setOnlyFavorites={setOnlyFavorites}
+              setOrdering={setOrdering}
+              ordering={ordering}
+            />
+          </div>
         )}
-        <AlbumTitle album={album} disableLink />
-        {subAlbumElement}
-        <MediaGallery
-          loading={loading}
-          mediaState={mediaState}
-          dispatchMedia={dispatchMedia}
-        />
+        <AlbumTitle album={album} disableLink actions={titleActions} />
+        <div className="mb-6">{subAlbumElement}</div>
+        <div className="content-surface">
+          <MediaGallery
+            loading={loading}
+            mediaState={mediaState}
+            dispatchMedia={dispatchMedia}
+            onMediaDeleted={onMediaDeleted}
+          />
+        </div>
       </div>
     )
   }

@@ -10,8 +10,17 @@ import PaginateLoader from '../../components/PaginateLoader'
 import { useTranslation } from 'react-i18next'
 import { albumQuery, albumQueryVariables } from './__generated__/albumQuery'
 import useOrderingParams from '../../hooks/useOrderingParams'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { isNil } from '../../helpers/utils'
+import { useIsAdmin } from '../../components/routes/AuthorizedRoute'
+import { Button } from '../../primitives/form/Input'
+import ActivityGalleryModal from '../../components/activityGallery/ActivityGalleryModal'
+import UploadToAlbumModal from '../../components/activityGallery/UploadToAlbumModal'
+import Modal from '../../primitives/Modal'
+import urlJoin from 'url-join'
+import { API_ENDPOINT } from '../../apolloClient'
+import { MessageState } from '../../components/messages/Messages'
+import { NotificationType } from '../../__generated__/globalTypes'
 
 const ALBUM_QUERY = gql`
   ${ALBUM_GALLERY_FRAGMENT}
@@ -33,12 +42,40 @@ const ALBUM_QUERY = gql`
 let refetchNeededAll = false
 let refetchNeededFavorites = false
 
+const ACTIVITY_GALLERY_DELETE_ALBUM_URL = urlJoin(
+  API_ENDPOINT,
+  '/activity-gallery/albums'
+)
+
+const addMessage = (header: string, content: string, negative = false) => {
+  MessageState.add({
+    key: Math.random().toString(26),
+    type: NotificationType.Message,
+    props: {
+      header,
+      content,
+      negative,
+      positive: !negative,
+    },
+  })
+}
+
 function AlbumPage() {
   const { id: albumId } = useParams()
   if (isNil(albumId))
     throw new Error('Expected parameter `id` to be defined for AlbumPage')
 
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const isAdmin = useIsAdmin()
+  const [createModalOpen, setCreateModalOpen] = React.useState(false)
+  const [uploadModalOpen, setUploadModalOpen] = React.useState(false)
+  const [albumToDelete, setAlbumToDelete] = React.useState<null | {
+    id: string
+    title: string
+    isCurrentAlbum?: boolean
+  }>(null)
+  const [deletingAlbum, setDeletingAlbum] = React.useState(false)
 
   const urlParams = useURLParameters()
   const orderParams = useOrderingParams(urlParams)
@@ -90,6 +127,52 @@ function AlbumPage() {
     [setOnlyFavorites, refetch]
   )
 
+  const deleteAlbum = async () => {
+    if (deletingAlbum || !albumToDelete) return
+
+    setDeletingAlbum(true)
+    try {
+      const response = await fetch(
+        urlJoin(ACTIVITY_GALLERY_DELETE_ALBUM_URL, albumToDelete.id),
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      )
+
+      const result = (await response.json()) as {
+        success?: boolean
+        message?: string
+      }
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Could not delete album')
+      }
+
+      addMessage(
+        t('albums_page.delete.success.title', 'Album deleted'),
+        t(
+          'albums_page.delete.success.description',
+          'The album and its images were removed successfully.'
+        )
+      )
+      if (albumToDelete.isCurrentAlbum) {
+        navigate('/albums')
+      } else {
+        void refetch()
+      }
+    } catch (error) {
+      addMessage(
+        t('albums_page.delete.failed.title', 'Delete album failed'),
+        error instanceof Error ? error.message : String(error),
+        true
+      )
+    } finally {
+      setDeletingAlbum(false)
+      setAlbumToDelete(null)
+    }
+  }
+
   if (error) return <div>Error</div>
 
   return (
@@ -108,6 +191,116 @@ function AlbumPage() {
         showFilter
         setOrdering={orderParams.setOrdering}
         ordering={orderParams}
+        onMediaDeleted={() => {
+          void refetch()
+        }}
+        renderSubAlbumActions={
+          isAdmin
+            ? album => (
+                <Button
+                  variant="negative"
+                  className="min-h-[38px] px-4 py-2 text-[0.82rem]"
+                  onClick={() =>
+                    setAlbumToDelete({
+                      id: album.id,
+                      title: album.title,
+                    })
+                  }
+                >
+                  {t('albums_page.delete.action', 'Delete')}
+                </Button>
+              )
+            : undefined
+        }
+        titleActions={
+          isAdmin && data?.album ? (
+            <>
+              <Button
+                variant="default"
+                onClick={() => setUploadModalOpen(true)}
+              >
+                {t('albums_page.media_upload.open_modal', 'Upload photos')}
+              </Button>
+              <Button
+                variant="positive"
+                onClick={() => setCreateModalOpen(true)}
+              >
+                {t('albums_page.activity_gallery.open_modal', 'Add album')}
+              </Button>
+              <Button
+                variant="negative"
+                onClick={() =>
+                  setAlbumToDelete({
+                    id: data.album.id,
+                    title: data.album.title,
+                    isCurrentAlbum: true,
+                  })
+                }
+              >
+                {t('albums_page.delete.action', 'Delete')}
+              </Button>
+            </>
+          ) : null
+        }
+      />
+      {isAdmin && data?.album && (
+        <ActivityGalleryModal
+          open={createModalOpen}
+          onClose={() => setCreateModalOpen(false)}
+          onCompleted={() => {
+            void refetch()
+          }}
+          parentAlbumId={data.album.id}
+          parentAlbumTitle={data.album.title}
+        />
+      )}
+      {isAdmin && data?.album && (
+        <UploadToAlbumModal
+          open={uploadModalOpen}
+          onClose={() => setUploadModalOpen(false)}
+          onCompleted={() => {
+            void refetch()
+          }}
+          albumId={data.album.id}
+          albumTitle={data.album.title}
+        />
+      )}
+      <Modal
+        open={albumToDelete != null}
+        onClose={() => {
+          if (!deletingAlbum) setAlbumToDelete(null)
+        }}
+        title={t('albums_page.delete.title', 'Delete album')}
+        description={
+          <div>
+            {t(
+              'albums_page.delete.description',
+              'Are you sure you want to delete this album and all images inside it?'
+            )}
+            {albumToDelete ? (
+              <div className="mt-2 font-semibold">{albumToDelete.title}</div>
+            ) : null}
+          </div>
+        }
+        actions={[
+          {
+            key: 'cancel',
+            label: t('general.action.cancel', 'Cancel'),
+            onClick: () => {
+              if (!deletingAlbum) setAlbumToDelete(null)
+            },
+            disabled: deletingAlbum,
+          },
+          {
+            key: 'delete',
+            label: t('albums_page.delete.confirm', 'Delete album'),
+            onClick: () => {
+              void deleteAlbum()
+            },
+            variant: 'negative',
+            disabled: deletingAlbum,
+          },
+        ]}
       />
       <PaginateLoader
         active={!finishedLoadingMore && !loading}

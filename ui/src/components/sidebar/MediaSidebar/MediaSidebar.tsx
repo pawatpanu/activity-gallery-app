@@ -3,9 +3,13 @@ import React, { useEffect, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
+import urlJoin from 'url-join'
+import { API_ENDPOINT } from '../../../apolloClient'
+import { NotificationType } from '../../../__generated__/globalTypes'
 import { authToken } from '../../../helpers/authentication'
 import { isNil } from '../../../helpers/utils'
 import { MediaType } from '../../../__generated__/globalTypes'
+import { MessageState } from '../../messages/Messages'
 import { SidebarFacesOverlay } from '../../facesOverlay/FacesOverlay'
 import { SidebarContext } from '../Sidebar'
 import {
@@ -17,6 +21,9 @@ import { SidebarPhotoCover } from '../AlbumCovers'
 import { SidebarPhotoShare } from '../Sharing'
 import SidebarMediaDownload from '../SidebarDownloadMedia'
 import SidebarHeader from '../SidebarHeader'
+import { Button } from '../../../primitives/form/Input'
+import { useIsAdmin } from '../../routes/AuthorizedRoute'
+import { SidebarSection, SidebarSectionTitle } from '../SidebarComponents'
 import { sidebarDownloadQuery_media_downloads } from '../__generated__/sidebarDownloadQuery'
 import ExifDetails from './MediaSidebarExif'
 import MediaSidebarPeople from './MediaSidebarPeople'
@@ -31,6 +38,24 @@ import {
   sidebarMediaQuery_media_videoMetadata,
 } from './__generated__/sidebarMediaQuery'
 import { BreadcrumbList } from '../../album/AlbumTitle'
+
+const ACTIVITY_GALLERY_DELETE_MEDIA_URL = urlJoin(
+  API_ENDPOINT,
+  '/activity-gallery/media'
+)
+
+const addMessage = (header: string, content: string, negative = false) => {
+  MessageState.add({
+    key: Math.random().toString(26),
+    type: NotificationType.Message,
+    props: {
+      header,
+      content,
+      negative,
+      positive: !negative,
+    },
+  })
+}
 
 export const SIDEBAR_MEDIA_QUERY = gql`
   query sidebarMediaQuery($id: ID!) {
@@ -160,11 +185,14 @@ const PreviewMedia = ({ media, previewImage }: PreviewMediaProps) => {
 type SidebarContentProps = {
   media: MediaSidebarMedia
   hidePreview?: boolean
+  onDeleted?(): void
 }
 
-const SidebarContent = ({ media, hidePreview }: SidebarContentProps) => {
+const SidebarContent = ({ media, hidePreview, onDeleted }: SidebarContentProps) => {
 	const { updateSidebar } = useContext(SidebarContext)
   const { t } = useTranslation()
+  const isAdmin = useIsAdmin()
+  const [deleting, setDeleting] = React.useState(false)
   let previewImage = null
   if (media.highRes) previewImage = media.highRes
   else if (media.thumbnail) previewImage = media.thumbnail
@@ -183,7 +211,6 @@ const SidebarContent = ({ media, hidePreview }: SidebarContentProps) => {
   let albumPath = null
   const mediaAlbum = media.album
   if (!isNil(mediaAlbum)) {
-    console.log('PATH reversed', mediaAlbum.path ?? [])
     const pathElms = [
       ...[...(mediaAlbum.path ?? [])].reverse(),
       mediaAlbum,
@@ -207,6 +234,47 @@ const SidebarContent = ({ media, hidePreview }: SidebarContentProps) => {
         <BreadcrumbList hideLastArrow={true}>{pathElms}</BreadcrumbList>
       </div>
     )
+  }
+
+  const deleteMedia = async () => {
+    if (deleting) return
+
+    setDeleting(true)
+    try {
+      const response = await fetch(
+        urlJoin(ACTIVITY_GALLERY_DELETE_MEDIA_URL, media.id),
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      )
+
+      const data = (await response.json()) as {
+        success?: boolean
+        message?: string
+      }
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Could not delete media')
+      }
+
+      addMessage(
+        t('sidebar.media.delete.success.title', 'Photo deleted'),
+        t(
+          'sidebar.media.delete.success.description',
+          'The selected image was removed successfully.'
+        )
+      )
+      updateSidebar(null)
+      onDeleted?.()
+    } catch (error) {
+      addMessage(
+        t('sidebar.media.delete.failed.title', 'Delete photo failed'),
+        error instanceof Error ? error.message : String(error),
+        true
+      )
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -235,6 +303,25 @@ const SidebarContent = ({ media, hidePreview }: SidebarContentProps) => {
       <div className="mt-8">
         <SidebarPhotoCover cover_id={media.id} />
       </div>
+      {isAdmin && (
+        <div className="mt-8">
+          <SidebarSection>
+            <SidebarSectionTitle>
+              {t('sidebar.media.management.title', 'Media management')}
+            </SidebarSectionTitle>
+            <Button
+              variant="negative"
+              className="w-full"
+              onClick={() => {
+                void deleteMedia()
+              }}
+              disabled={deleting}
+            >
+              {t('sidebar.media.delete.action', 'Delete photo')}
+            </Button>
+          </SidebarSection>
+        </div>
+      )}
     </div>
   )
 }
@@ -272,9 +359,10 @@ export interface MediaSidebarMedia {
 type MediaSidebarType = {
   media: MediaSidebarMedia
   hidePreview?: boolean
+  onDeleted?(): void
 }
 
-const MediaSidebar = ({ media, hidePreview }: MediaSidebarType) => {
+const MediaSidebar = ({ media, hidePreview, onDeleted }: MediaSidebarType) => {
   const [loadMedia, { loading, error, data }] = useLazyQuery<
     sidebarMediaQuery,
     sidebarMediaQueryVariables
@@ -293,16 +381,16 @@ const MediaSidebar = ({ media, hidePreview }: MediaSidebarType) => {
   if (!media) return null
 
   if (!authToken()) {
-    return <SidebarContent media={media} hidePreview={hidePreview} />
+    return <SidebarContent media={media} hidePreview={hidePreview} onDeleted={onDeleted} />
   }
 
   if (error) return <div>{error.message}</div>
 
   if (loading || data == null) {
-    return <SidebarContent media={media} hidePreview={hidePreview} />
+    return <SidebarContent media={media} hidePreview={hidePreview} onDeleted={onDeleted} />
   }
 
-  return <SidebarContent media={data.media} hidePreview={hidePreview} />
+  return <SidebarContent media={data.media} hidePreview={hidePreview} onDeleted={onDeleted} />
 }
 
 export default MediaSidebar
