@@ -174,7 +174,7 @@ const TimelineGallery = () => {
         filterDate={filterDate}
         setFilterDate={setFilterDate}
       />
-      <div className="-mx-3 flex flex-wrap" ref={containerElem}>
+      <div className="space-y-8" ref={containerElem}>
         {timelineGroups}
       </div>
       <PaginateLoader

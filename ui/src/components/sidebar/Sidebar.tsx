@@ -89,14 +89,24 @@ export const Sidebar = () => {
 
   return (
     <div
-      className={`fixed top-[72px] bg-white dark:bg-dark-bg2 dark:border-dark-border2 bottom-0 w-full overflow-y-auto transform transition-transform motion-reduce:transition-none ${
+      className={`fixed bottom-0 w-full overflow-y-auto px-3 pb-3 pt-[84px] transform transition-transform motion-reduce:transition-none ${
         content == null && !pinned ? 'translate-x-full' : 'translate-x-0'
       } ${
-        pinned ? 'lg:border-l' : 'lg:shadow-separator'
-      } lg:w-[420px] lg:right-0 lg:top-0 lg:z-40`}
+        pinned ? 'lg:translate-x-0' : ''
+      } lg:right-0 lg:top-0 lg:z-40 lg:w-[420px] lg:px-4 lg:pb-4 lg:pt-5`}
     >
-      {content}
-      <div className="h-24"></div>
+      <div
+        className="min-h-full rounded-[28px] border"
+        style={{
+          background: 'var(--surface-elevated)',
+          borderColor: 'var(--border-subtle)',
+          boxShadow: 'var(--shadow-medium)',
+          backdropFilter: 'blur(24px)',
+        }}
+      >
+        {content}
+        <div className="h-24"></div>
+      </div>
     </div>
   )
 }

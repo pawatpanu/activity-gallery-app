@@ -9,6 +9,15 @@ const TimelinePage = () => {
   return (
     <>
       <Layout title={t('photos_page.title', 'Timeline')}>
+        <div className="mb-8">
+          <h1 className="page-title">{t('photos_page.title', 'Timeline')}</h1>
+          <p className="page-subtitle">
+            {t(
+              'photos_page.description',
+              'Browse recent uploads in a calm, chronological gallery with refined filters and quick visual scanning.'
+            )}
+          </p>
+        </div>
         <TimelineGallery />
       </Layout>
     </>

@@ -45,10 +45,19 @@ const TimelineGroupDate = ({
   const formattedDate = dateFormatter.format(new Date(group.date))
 
   return (
-    <div className="mx-3 mb-2">
-      <div className="text-lg font-bold m-0 -mb-2">{formattedDate}</div>
-      <div className="flex flex-wrap -mx-2 my-0">{albumGroupElms}</div>
-    </div>
+    <section
+      className="rounded-[26px] border p-5 md:p-6"
+      style={{
+        background: 'var(--surface-strong)',
+        borderColor: 'var(--border-subtle)',
+        boxShadow: 'var(--shadow-card)',
+      }}
+    >
+      <div className="mb-4 text-[1.25rem] font-bold tracking-[-0.03em] text-[var(--text-primary)]">
+        {formattedDate}
+      </div>
+      <div className="flex flex-wrap gap-4">{albumGroupElms}</div>
+    </section>
   )
 }
 

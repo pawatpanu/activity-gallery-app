@@ -25,22 +25,25 @@ const ScannerSection = () => {
       <SectionTitle nospace>
         {t('settings.scanner.title', 'Scanner')}
       </SectionTitle>
-      <InputLabelDescription>
-        {t(
-          'settings.scanner.description',
-          'Will scan all users for new or updated media'
-        )}
-      </InputLabelDescription>
-      <Button
-        onClick={() => {
-          startScanner()
-        }}
-        disabled={called}
-      >
-        {t('settings.scanner.scan_all_users', 'Scan all users')}
-      </Button>
-      <PeriodicScanner />
-      <ScannerConcurrentWorkers />
+      <div className="section-card">
+        <InputLabelDescription>
+          {t(
+            'settings.scanner.description',
+            'Will scan all users for new or updated media'
+          )}
+        </InputLabelDescription>
+        <Button
+          onClick={() => {
+            startScanner()
+          }}
+          disabled={called}
+          variant="positive"
+        >
+          {t('settings.scanner.scan_all_users', 'Scan all users')}
+        </Button>
+        <PeriodicScanner />
+        <ScannerConcurrentWorkers />
+      </div>
     </div>
   )
 }

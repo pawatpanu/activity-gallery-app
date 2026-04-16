@@ -9,11 +9,20 @@ type MessageBoxProps = {
 const MessageBox = ({ message, show, type }: MessageBoxProps) => {
   if (!show) return null
 
-  let variant = 'bg-gray-100'
-  if (type == 'positive') variant = 'bg-green-200 text-green-900'
-  if (type == 'negative') variant = 'bg-red-200 text-red-900'
+  let variant =
+    'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-secondary)]'
+  if (type == 'positive')
+    variant =
+      'border-[rgba(74,191,60,0.2)] bg-[var(--success-surface)] text-[#1f7446]'
+  if (type == 'negative')
+    variant =
+      'border-[rgba(217,83,113,0.2)] bg-[var(--danger-surface)] text-[var(--danger-text)]'
 
-  return <div className={`py-2 px-3 my-4 rounded-md ${variant}`}>{message}</div>
+  return (
+    <div className={`my-4 rounded-[18px] border px-4 py-3 text-sm ${variant}`}>
+      {message}
+    </div>
+  )
 }
 
 export default MessageBox

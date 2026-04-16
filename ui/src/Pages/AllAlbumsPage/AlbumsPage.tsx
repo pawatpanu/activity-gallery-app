@@ -128,7 +128,16 @@ const AlbumsPage = () => {
 
   return (
     <Layout title="Albums">
-      <div className="flex flex-wrap gap-4 items-end justify-between">
+      <div className="mb-8">
+        <h1 className="page-title">{t('sidemenu.albums', 'Albums')}</h1>
+        <p className="page-subtitle">
+          {t(
+            'albums_page.description',
+            'Organize curated collections, create new albums, and manage gallery content from one premium workspace.'
+          )}
+        </p>
+      </div>
+      <div className="content-toolbar mb-6">
         <AlbumFilter
           onlyFavorites={false}
           ordering={orderParams}
@@ -136,9 +145,11 @@ const AlbumsPage = () => {
           sortingOptions={sortingOptions}
         />
         {isAdmin && (
-          <Button variant="positive" onClick={() => setCreateModalOpen(true)}>
-            {t('albums_page.activity_gallery.open_modal', 'Add album')}
-          </Button>
+          <div className="toolbar-actions">
+            <Button variant="positive" onClick={() => setCreateModalOpen(true)}>
+              {t('albums_page.activity_gallery.open_modal', 'Add album')}
+            </Button>
+          </div>
         )}
       </div>
       <AlbumBoxes

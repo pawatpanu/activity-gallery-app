@@ -108,8 +108,13 @@ const AuthorizedTokenRoute = () => {
     },
   })
 
-  if (!isNil(error)) return <div>{error.message}</div>
-  if (loading) return <div>{t('general.loading.default', 'Loading...')}</div>
+  if (!isNil(error)) return <MessageContainer>{error.message}</MessageContainer>
+  if (loading)
+    return (
+      <MessageContainer>
+        {t('general.loading.default', 'Loading...')}
+      </MessageContainer>
+    )
 
   if (data?.shareToken.album) {
     const SharedSubAlbumPage = () => {
@@ -143,12 +148,24 @@ const AuthorizedTokenRoute = () => {
     return <MediaSharePage media={data.shareToken.media} />
   }
 
-  return <h1>{t('share_page.share_not_found', 'Share not found')}</h1>
+  return (
+    <MessageContainer>
+      <h1 className="text-[1.8rem] font-extrabold tracking-[-0.04em] text-[var(--text-primary)]">
+        {t('share_page.share_not_found', 'Share not found')}
+      </h1>
+    </MessageContainer>
+  )
 }
 
 export const MessageContainer = styled.div`
-  max-width: 400px;
-  margin: 100px auto 0;
+  max-width: 520px;
+  margin: 80px auto 0;
+  padding: 28px 28px 26px;
+  border-radius: 28px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-medium);
+  backdrop-filter: blur(18px);
 `
 
 export const TokenRoute = () => {
@@ -170,8 +187,10 @@ export const TokenRoute = () => {
     if (error.message == 'GraphQL error: share not found') {
       return (
         <MessageContainer>
-          <h1>{t('share_page.share_not_found', 'Share not found')}</h1>
-          <p>
+          <h1 className="text-[1.8rem] font-extrabold tracking-[-0.04em] text-[var(--text-primary)]">
+            {t('share_page.share_not_found', 'Share not found')}
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
             {t(
               'share_page.share_not_found_description',
               'Maybe the share has expired or has been deleted.'
@@ -181,7 +200,7 @@ export const TokenRoute = () => {
       )
     }
 
-    return <div>{error.message}</div>
+    return <MessageContainer>{error.message}</MessageContainer>
   }
 
   if (data && data.shareTokenValidatePassword == false) {
@@ -196,7 +215,12 @@ export const TokenRoute = () => {
     )
   }
 
-  if (loading) return <div>{t('general.loading.default', 'Loading...')}</div>
+  if (loading)
+    return (
+      <MessageContainer>
+        {t('general.loading.default', 'Loading...')}
+      </MessageContainer>
+    )
 
   return <AuthorizedTokenRoute />
 }

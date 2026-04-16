@@ -8,12 +8,16 @@ import { NotificationType } from '../../__generated__/globalTypes'
 
 const Container = styled.div`
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 500px;
+  bottom: 16px;
+  right: 16px;
+  width: min(500px, calc(100vw - 24px));
+  z-index: 80;
 
   @media (max-width: 1000px) {
-    display: none;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
   }
 `
 

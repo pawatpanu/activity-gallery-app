@@ -34,12 +34,15 @@ export const TextField = forwardRef(
     const disabled = !!inputProps.disabled
     sizeVariant = sizeVariant ?? 'default'
 
-    let variant = 'bg-white border-gray-200 focus:border-blue-400'
+    let variant =
+      'border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] hover:border-[var(--border-strong)] focus:border-[rgba(108,132,255,0.48)] focus:ring-[var(--shadow-focus)]'
     if (error)
       variant =
-        'bg-red-50 border-red-200 focus:border-red-400 focus:ring-red-100 placeholder-red-300'
+        'border-[rgba(217,83,113,0.28)] bg-[var(--danger-surface)] text-[var(--text-primary)] focus:border-[rgba(217,83,113,0.46)] focus:ring-[0_0_0_4px_rgba(217,83,113,0.16)] placeholder:text-[rgba(185,56,87,0.55)]'
 
-    if (disabled) variant = 'bg-gray-100'
+    if (disabled)
+      variant =
+        'border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-muted)] cursor-not-allowed shadow-none'
 
     let keyUpEvent = undefined
     if (action) {
@@ -57,10 +60,10 @@ export const TextField = forwardRef(
       <input
         onKeyUp={keyUpEvent}
         className={classNames(
-          'block border rounded-md focus:ring-2 focus:outline-none px-2',
-          'dark:bg-dark-input-bg dark:border-dark-input-border',
+          'block border focus:outline-none px-4 transition-all duration-200 ease-out',
+          'rounded-[18px] placeholder:text-[var(--text-muted)]',
           variant,
-          sizeVariant == 'big' ? 'py-2' : 'py-1',
+          sizeVariant == 'big' ? 'min-h-[52px] py-3 text-base' : 'min-h-[46px] py-2.5 text-[0.95rem]',
           { 'w-full': fullWidth },
           className
         )}
@@ -75,7 +78,7 @@ export const TextField = forwardRef(
           {input}
           <LoadingSpinnerIcon
             aria-label="Loading"
-            className="absolute right-[8px] top-[7px] animate-spin"
+            className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[var(--text-muted)]"
           />
         </div>
       )
@@ -91,7 +94,7 @@ export const TextField = forwardRef(
             disabled={disabled}
             aria-label="Submit"
             className={classNames(
-              'absolute top-1/2 right-0 -translate-y-1/2 p-2 text-gray-600 disabled:text-gray-400 disabled:cursor-default'
+              'absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full p-2 text-[var(--text-muted)] transition-colors duration-200 hover:text-[var(--text-primary)] disabled:text-[var(--text-muted)] disabled:cursor-default'
             )}
             onClick={e => {
               e.preventDefault()
@@ -102,7 +105,7 @@ export const TextField = forwardRef(
           >
             <ActionArrowIcon
               className={classNames(
-                sizeVariant == 'big' && 'w-4 h-4 mt-1 mr-1'
+                sizeVariant == 'big' && 'w-4 h-4'
               )}
             />
           </button>
@@ -111,7 +114,8 @@ export const TextField = forwardRef(
     }
 
     let errorElm = null
-    if (error) errorElm = <div className="text-red-800">{error}</div>
+    if (error)
+      errorElm = <div className="mt-1.5 text-sm text-[var(--danger-text)]">{error}</div>
 
     const wrapperClasses = classNames(
       sizeVariant == 'default' && 'text-sm',
@@ -121,9 +125,7 @@ export const TextField = forwardRef(
     if (label) {
       return (
         <label className={classNames(wrapperClasses, 'block')}>
-          <span className="block text-xs uppercase font-semibold mb-1">
-            {label}
-          </span>
+          <span className="field-label">{label}</span>
           {input}
           {errorElm}
         </label>
@@ -147,13 +149,19 @@ type ButtonProps = {
 
 export const buttonStyles = ({ variant, background }: ButtonProps) =>
   classNames(
-    'px-6 py-0.5 rounded border border-gray-200 focus:outline-none focus:border-blue-300 text-[#222] hover:bg-gray-100 whitespace-nowrap',
-    'dark:bg-dark-input-bg dark:border-dark-input-border dark:text-dark-input-text dark:focus:border-blue-300',
+    'inline-flex min-h-[44px] items-center justify-center rounded-[16px] border px-5 py-2.5 text-sm font-semibold tracking-[-0.01em] whitespace-nowrap transition-all duration-200 ease-out focus:outline-none disabled:cursor-not-allowed disabled:opacity-60',
+    'border-[var(--border-subtle)] text-[var(--text-primary)] shadow-[0_8px_20px_rgba(22,32,51,0.06)]',
+    'hover:-translate-y-[1px] hover:border-[var(--border-strong)]',
+    'focus:ring-[var(--shadow-focus)]',
+    background == 'white'
+      ? 'bg-[var(--surface-elevated)]'
+      : 'bg-[var(--surface-strong)]',
     variant == 'negative' &&
-      'text-red-600 hover:bg-red-600 hover:border-red-700 hover:text-white transition-colors focus:border-red-600 focus:hover:border-red-700',
+      'bg-[var(--danger-surface)] text-[var(--danger-text)] border-[rgba(217,83,113,0.18)] hover:bg-[#b93857] hover:border-[#b93857] hover:text-white',
     variant == 'positive' &&
-      'text-green-600 hover:bg-green-600 hover:border-green-700 hover:text-white transition-colors focus:border-green-600 focus:hover:border-green-700',
-    background == 'white' ? 'bg-white' : 'bg-gray-50'
+      'border-transparent bg-[var(--brand-surface)] text-white shadow-[0_18px_34px_rgba(216,61,103,0.24)] hover:brightness-105',
+    variant == 'default' &&
+      'hover:bg-[var(--surface-muted)]'
   )
 
 type SubmitProps = ButtonProps & {

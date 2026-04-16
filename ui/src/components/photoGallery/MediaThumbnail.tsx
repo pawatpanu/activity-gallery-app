@@ -9,10 +9,18 @@ const MediaContainer = styled.div`
   flex-grow: 1;
   flex-basis: 0;
   height: 200px;
-  margin: 4px 2px;
-  background-color: #eee;
+  margin: 6px 4px;
+  background-color: var(--surface-muted);
   position: relative;
   overflow: hidden;
+  border-radius: 22px;
+  box-shadow: var(--shadow-card);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+  }
 `
 
 const StyledPhoto = styled(ProtectedImage)`
@@ -21,7 +29,11 @@ const StyledPhoto = styled(ProtectedImage)`
   position: relative;
   object-fit: cover;
 
-  transition: opacity 300ms;
+  transition: opacity 300ms, transform 400ms ease;
+
+  ${MediaContainer}:hover & {
+    transform: scale(1.03);
+  }
 `
 
 type LazyPhotoProps = {
@@ -45,6 +57,7 @@ const PhotoOverlay = styled.div<{ active: boolean }>`
     `
       outline: 4px solid rgba(65, 131, 196, 0.6);
       outline-offset: -4px;
+      border-radius: 22px;
     `}
 `
 
@@ -52,13 +65,15 @@ const HoverIcon = styled.button`
   font-size: 1.5em;
   margin: 160px 10px 0 10px;
   color: white;
-  text-shadow: 0 0 4px black;
+  text-shadow: 0 0 12px rgba(15, 20, 30, 0.72);
   opacity: 0;
   position: relative;
 
   border-radius: 50%;
   width: 34px;
   height: 34px;
+  background-color: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10px);
 
   ${MediaContainer}:hover &, ${MediaContainer}:focus-within & {
     opacity: 1 !important;
@@ -214,7 +229,8 @@ export const MediaPlaceholder = styled.div`
   flex-grow: 1;
   height: 200px;
   width: 300px;
-  margin: 4px 2px;
-  background-color: #eee;
+  margin: 6px 4px;
+  background-color: var(--surface-muted);
   position: relative;
+  border-radius: 22px;
 `

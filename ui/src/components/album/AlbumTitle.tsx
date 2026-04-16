@@ -44,9 +44,14 @@ type AlbumTitleProps = {
     title: string
   }
   disableLink: boolean
+  actions?: React.ReactNode
 }
 
-const AlbumTitle = ({ album, disableLink = false }: AlbumTitleProps) => {
+const AlbumTitle = ({
+  album,
+  disableLink = false,
+  actions,
+}: AlbumTitleProps) => {
   const [fetchPath, { data: pathData }] =
     useLazyQuery<albumPathQuery>(ALBUM_PATH_QUERY)
   const { updateSidebar } = useContext(SidebarContext)
@@ -68,12 +73,12 @@ const AlbumTitle = ({ album, disableLink = false }: AlbumTitleProps) => {
   if (!album) {
     return (
       <div
-        className={`flex mb-6 flex-col h-14 transition-opacity animate-pulse ${
+        className={`mb-8 flex h-20 flex-col justify-end transition-opacity animate-pulse ${
           delay ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        <div className="w-32 h-4 bg-gray-100 mb-2 mt-1"></div>
-        <div className="w-72 h-6 bg-gray-100"></div>
+        <div className="mb-3 mt-1 h-4 w-32 rounded-full bg-[var(--surface-muted)]"></div>
+        <div className="h-8 w-72 rounded-full bg-[var(--surface-muted)]"></div>
       </div>
     )
   }
@@ -96,24 +101,42 @@ const AlbumTitle = ({ album, disableLink = false }: AlbumTitleProps) => {
   }
 
   return (
-    <div className="flex mb-6 items-end h-14">
+    <div className="hero-panel mb-8 flex min-h-[112px] items-end justify-between gap-4">
       <div className="min-w-0">
-        <nav aria-label="Album breadcrumb">
-          <BreadcrumbList>{breadcrumbSections}</BreadcrumbList>
+        <div className="mb-2 text-[0.72rem] font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+          Album workspace
+        </div>
+        <nav
+          aria-label="Album breadcrumb"
+          className="mb-3 text-sm text-[var(--text-secondary)]"
+        >
+          <BreadcrumbList hideLastArrow>{breadcrumbSections}</BreadcrumbList>
         </nav>
-        <h1 className="text-2xl truncate min-w-0">{title}</h1>
+        <h1 className="min-w-0 truncate text-[2.35rem] font-extrabold tracking-[-0.05em] text-[var(--text-primary)] md:text-[2.75rem]">
+          {title}
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
+          Review imported media, browse related subalbums, and manage this
+          collection from a calm, premium workspace.
+        </p>
       </div>
       {authToken() && (
-        <button
-          title="Album options"
-          aria-label="Album options"
-          className={tailwindClassNames(buttonStyles({}), 'px-2 py-2 ml-2')}
-          onClick={() => {
-            updateSidebar(<AlbumSidebar albumId={album.id} />)
-          }}
-        >
-          <GearIcon />
-        </button>
+        <div className="ml-2 flex flex-wrap items-center gap-2 self-start md:self-end">
+          {actions}
+          <button
+            title="Album options"
+            aria-label="Album options"
+            className={tailwindClassNames(
+              buttonStyles({}),
+              'h-[48px] min-w-[48px] px-3 py-3'
+            )}
+            onClick={() => {
+              updateSidebar(<AlbumSidebar albumId={album.id} />)
+            }}
+          >
+            <GearIcon />
+          </button>
+        </div>
       )}
     </div>
   )

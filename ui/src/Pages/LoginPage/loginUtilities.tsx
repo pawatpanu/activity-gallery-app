@@ -25,4 +25,6 @@ export const providerAuthEnabled =
 
 export const providerAuthStartURL = urlJoin(API_ENDPOINT, '/auth/provider/start')
 
-export const Container = styled.div.attrs({ className: 'mt-20' })``
+export const Container = styled.div.attrs({
+  className: 'mx-auto mt-12 w-full max-w-[620px] px-4 md:mt-16',
+})``

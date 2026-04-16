@@ -74,13 +74,13 @@ const TimelineGroupAlbum = ({
   ))
 
   return (
-    <div className="mx-2">
-      <Link to={`/album/${albumID}`} className="hover:underline">
-        <span className="text-sm text-gray-600 dark:text-gray-400">
+    <div className="min-w-0 flex-1 rounded-[22px] border p-4" style={{ background: 'var(--surface-elevated)', borderColor: 'var(--border-subtle)' }}>
+      <Link to={`/album/${albumID}`} className="inline-flex items-center gap-2 hover:underline">
+        <span className="text-sm font-semibold text-[var(--text-secondary)]">
           {albumTitle}
         </span>
       </Link>
-      <div className="flex flex-wrap items-center relative -mx-1 overflow-hidden">
+      <div className="relative mt-3 flex flex-wrap items-center overflow-hidden">
         {mediaElms}
         <PhotoFiller />
       </div>

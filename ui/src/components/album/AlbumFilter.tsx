@@ -91,27 +91,28 @@ const SortingOptions = ({
 
   return (
     <fieldset>
-      <legend id="filter_group_sort-label" className="inline-block mb-1">
+      <legend id="filter_group_sort-label" className="field-label">
         <SortingIcon
-          className="inline-block align-baseline mr-1 mt-1"
+          className="mr-1 inline-block align-baseline"
           aria-hidden="true"
         />
         <span>{t('album_filter.sort', 'Sort')}</span>
       </legend>
-      <div>
+      <div className="flex items-center gap-2">
         <Dropdown
           aria-labelledby="filter_group_sort-label"
           setSelected={changeOrderBy}
           value={ordering?.orderBy || undefined}
           items={sortingOptions}
+          className="min-w-[190px]"
         />
         <button
           title={t('album_filter.sort_direction', 'Sort direction')}
           aria-label={t('album_filter.sort_direction', 'Sort direction')}
           aria-pressed={ordering?.orderDirection === OrderDirection.DESC}
           className={classNames(
-            'bg-gray-50 h-[30px] align-top px-2 py-1 rounded ml-2 border border-gray-200 focus:outline-none focus:border-blue-300 text-[#8b8b8b] hover:bg-gray-100 hover:text-[#777]',
-            'dark:bg-dark-input-bg dark:border-dark-input-border dark:text-dark-input-text dark:focus:border-blue-300',
+            'inline-flex h-[46px] w-[46px] items-center justify-center rounded-[16px] border text-[var(--text-secondary)] transition-all duration-200 focus:outline-none',
+            'border-[var(--border-subtle)] bg-[var(--surface-elevated)] hover:-translate-y-[1px] hover:border-[var(--border-strong)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] focus:ring-[var(--shadow-focus)]',
             { 'flip-y': ordering?.orderDirection === OrderDirection.ASC }
           )}
           onClick={changeOrderDirection}
@@ -144,7 +145,7 @@ const AlbumFilter = ({
   sortingOptions,
 }: AlbumFilterProps) => {
   return (
-    <div className="flex items-end gap-4 flex-wrap mb-4">
+    <div className="toolbar-group">
       {ordering && setOrdering ? (
         <SortingOptions
           ordering={ordering}

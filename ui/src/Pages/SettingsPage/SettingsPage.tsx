@@ -19,9 +19,13 @@ export const SectionTitle = ({ children, nospace }: SectionTitleProps) => {
   return (
     <h2
       className={classNames(
-        'pb-1 border-b border-gray-200 dark:border-dark-border text-xl mb-5',
+        'mb-5 border-b pb-3 text-[1.55rem] font-bold tracking-[-0.03em]',
         !nospace && 'mt-6'
       )}
+      style={{
+        borderColor: 'var(--border-subtle)',
+        color: 'var(--text-primary)',
+      }}
     >
       {children}
     </h2>
@@ -29,11 +33,11 @@ export const SectionTitle = ({ children, nospace }: SectionTitleProps) => {
 }
 
 export const InputLabelTitle = styled.h3.attrs({
-  className: 'font-semibold mt-4',
+  className: 'mt-5 text-base font-semibold tracking-[-0.02em]',
 })``
 
 export const InputLabelDescription = styled.p.attrs({
-  className: 'text-sm mb-2',
+  className: 'mb-2 text-sm leading-6 text-[var(--text-secondary)]',
 })``
 
 const SettingsPage = () => {
@@ -42,6 +46,15 @@ const SettingsPage = () => {
 
   return (
     <Layout title={t('title.settings', 'Settings')}>
+      <div className="mb-8">
+        <h1 className="page-title">{t('title.settings', 'Settings')}</h1>
+        <p className="page-subtitle">
+          {t(
+            'settings.page_description',
+            'Manage your workspace preferences, scanner behavior, user access, and media operations with a cohesive control center.'
+          )}
+        </p>
+      </div>
       <UserPreferences />
       {isAdmin && (
         <>

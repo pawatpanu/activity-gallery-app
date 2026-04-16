@@ -12,7 +12,7 @@ import { authToken } from '../../helpers/authentication'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import { useNavigate } from 'react-router'
-import { TextField } from '../../primitives/form/Input'
+import { Button, TextField } from '../../primitives/form/Input'
 import MessageBox from '../../primitives/form/MessageBox'
 import { CheckInitialSetup } from './__generated__/CheckInitialSetup'
 import { Authorize, AuthorizeVariables } from './__generated__/Authorize'
@@ -31,15 +31,21 @@ const LogoHeader = () => {
   const { t } = useTranslation()
 
   return (
-    <div className="flex justify-center flex-col mb-14 mt-20">
-      <img
-        className="h-24"
-        src={import.meta.env.BASE_URL + 'photoview-logo.svg'}
-        alt="photoview logo"
-      />
-      <h1 className="text-3xl text-center mt-4">
+    <div className="mb-10 flex flex-col items-center text-center">
+      <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-[var(--brand-surface)] shadow-[0_24px_46px_rgba(216,61,103,0.22)]">
+        <img
+          className="h-16"
+          src={import.meta.env.BASE_URL + 'photoview-logo.svg'}
+          alt="photoview logo"
+        />
+      </div>
+      <h1 className="mt-6 text-[2.6rem] font-extrabold tracking-[-0.05em] text-[var(--text-primary)]">
         {t('login_page.welcome', 'Welcome to Photoview')}
       </h1>
+      <p className="mt-3 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
+        A refined workspace for curated albums, timeline browsing, and premium
+        media management.
+      </p>
     </div>
   )
 }
@@ -79,14 +85,13 @@ const LoginForm = () => {
 
   return (
     <form
-      className="mx-auto max-w-[500px] px-4"
+      className="floating-surface mx-auto max-w-[560px] px-5 py-6 md:px-8 md:py-8"
       onSubmit={handleSubmit(onSubmit)}
-      // loading={loading || (data && data.authorizeUser.success)}
     >
       {providerAuthEnabled && (
         <a
           href={providerAuthStartURL}
-          className="block w-full rounded-md px-8 py-3 mb-5 text-center cursor-pointer bg-teal-50 text-teal-800 border border-teal-200 font-semibold hover:bg-teal-100"
+          className="mb-5 flex min-h-[48px] w-full items-center justify-center rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-8 py-3 text-center font-semibold text-[var(--text-primary)] transition-all duration-200 hover:-translate-y-[1px] hover:border-[var(--border-strong)]"
         >
           {t('login_page.provider_id.sign_in', 'Sign in with Provider ID')}
         </a>
@@ -111,12 +116,9 @@ const LoginForm = () => {
         label={t('login_page.field.password', 'Password')}
         {...register('password')}
       />
-      <input
-        type="submit"
-        disabled={loading}
-        value={t('login_page.field.submit', 'Sign in')}
-        className="rounded-md px-8 py-2 mt-2 focus:outline-none cursor-pointer bg-gradient-to-bl from-[#FF8246] to-[#D6264D] text-white font-semibold focus:ring-2 focus:ring-red-200 disabled:cursor-default disabled:opacity-80"
-      />
+      <Button className="mt-2" type="submit" variant="positive" disabled={loading}>
+        {t('login_page.field.submit', 'Sign in')}
+      </Button>
       <MessageBox
         message={errorMessage}
         show={!!errorMessage}
@@ -161,7 +163,7 @@ const LoginPage = () => {
       <Helmet>
         <title>{t('title.login', 'Login')} - Photoview</title>
       </Helmet>
-      <div>
+      <div className="min-h-screen px-4 py-10">
         <LogoHeader />
         <LoginForm />
       </div>

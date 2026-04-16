@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import urlJoin from 'url-join'
-import { API_ENDPOINT } from '../../apolloClient'
 import { MessageState } from '../../components/messages/Messages'
 import { NotificationType } from '../../__generated__/globalTypes'
 import Dropdown, { DropdownItem } from '../../primitives/form/Dropdown'
@@ -12,6 +10,12 @@ import {
   InputLabelTitle,
   SectionTitle,
 } from './SettingsPage'
+import {
+  ActivityGalleryActionResponse,
+  ACTIVITY_GALLERY_CONFIG_URL,
+  ACTIVITY_GALLERY_CREATE_ALBUM_URL,
+  uploadFilesWithProgress,
+} from '../../components/activityGallery/uploadWithProgress'
 
 type ActivityGalleryRoot = {
   title: string
@@ -21,20 +25,6 @@ type ActivityGalleryRoot = {
 type ActivityGalleryConfigResponse = {
   roots: ActivityGalleryRoot[]
 }
-
-type ActivityGalleryActionResponse = {
-  success: boolean
-  message: string
-  relativePath?: string
-  files?: string[]
-}
-
-const ACTIVITY_GALLERY_CONFIG_URL = urlJoin(API_ENDPOINT, '/activity-gallery/config')
-const ACTIVITY_GALLERY_CREATE_ALBUM_URL = urlJoin(
-  API_ENDPOINT,
-  '/activity-gallery/albums'
-)
-const ACTIVITY_GALLERY_UPLOAD_URL = urlJoin(API_ENDPOINT, '/activity-gallery/upload')
 
 const addMessage = (header: string, content: string, negative = false) => {
   MessageState.add({
@@ -56,6 +46,7 @@ const ActivityGallerySection = () => {
   const [loadingRoots, setLoadingRoots] = useState(true)
   const [creatingAlbum, setCreatingAlbum] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [parentPath, setParentPath] = useState('')
   const [albumName, setAlbumName] = useState('')
   const [uploadAlbumPath, setUploadAlbumPath] = useState('')
@@ -149,6 +140,7 @@ const ActivityGallerySection = () => {
       }
 
       setUploadAlbumPath(data.relativePath || '')
+      setUploadProgress(null)
       setAlbumName('')
       setParentPath('')
       addMessage(
@@ -194,23 +186,19 @@ const ActivityGallerySection = () => {
       return
     }
 
-    const formData = new FormData()
-    formData.append('rootPath', selectedRoot)
-    formData.append('albumPath', uploadAlbumPath)
-    Array.from(selectedFiles).forEach(file => formData.append('files', file))
-
     setUploading(true)
+    setUploadProgress(0)
     try {
-      const response = await fetch(ACTIVITY_GALLERY_UPLOAD_URL, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      })
-
-      const data = (await response.json()) as ActivityGalleryActionResponse
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Could not upload files')
-      }
+      const files = Array.from(selectedFiles)
+      const data = await uploadFilesWithProgress(
+        selectedRoot,
+        uploadAlbumPath,
+        files,
+        (loaded, total) => {
+          const percent = total ? Math.round((loaded / total) * 100) : 100
+          setUploadProgress(percent)
+        }
+      )
 
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
@@ -229,6 +217,7 @@ const ActivityGallerySection = () => {
       )
     } finally {
       setUploading(false)
+      setTimeout(() => setUploadProgress(null), 600)
     }
   }
 
@@ -237,119 +226,152 @@ const ActivityGallerySection = () => {
       <SectionTitle>
         {t('settings.activity_gallery.title', 'Activity gallery')}
       </SectionTitle>
-      <InputLabelDescription>
-        {t(
-          'settings.activity_gallery.description',
-          'Create album folders and upload image files directly into the managed activity gallery media root.'
+      <div className="section-card">
+        <InputLabelDescription>
+          {t(
+            'settings.activity_gallery.description',
+            'Create album folders and upload image files directly into the managed activity gallery media root.'
+          )}
+        </InputLabelDescription>
+
+        <Loader active={loadingRoots} />
+
+        {rootItems.length > 0 ? (
+          <div className="control-stack">
+            <label htmlFor="activity_gallery_root_field">
+              <InputLabelTitle>
+                {t('settings.activity_gallery.root.label', 'Gallery root path')}
+              </InputLabelTitle>
+              <InputLabelDescription>
+                {t(
+                  'settings.activity_gallery.root.description',
+                  'Choose which owned root path should receive new albums and uploaded files.'
+                )}
+              </InputLabelDescription>
+            </label>
+            <Dropdown
+              id="activity_gallery_root_field"
+              items={rootItems}
+              selected={selectedRoot}
+              setSelected={setSelectedRoot}
+            />
+
+            <div className="mt-2 grid gap-5 xl:grid-cols-2">
+              <div className="rounded-[22px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-5 shadow-[var(--shadow-card)]">
+                <InputLabelTitle>
+                  {t('settings.activity_gallery.create.title', 'Create album')}
+                </InputLabelTitle>
+                <InputLabelDescription>
+                  {t(
+                    'settings.activity_gallery.create.description',
+                    'Create a new folder-based album under the selected root path. Parent path is optional for nested albums.'
+                  )}
+                </InputLabelDescription>
+                <div className="control-stack max-w-2xl">
+                  <TextField
+                    aria-label="Album parent path"
+                    value={parentPath}
+                    onChange={event => setParentPath(event.target.value)}
+                    placeholder={t(
+                      'settings.activity_gallery.create.parent_placeholder',
+                      'optional parent path, e.g. 2026-04-events'
+                    )}
+                  />
+                  <TextField
+                    aria-label="Album name"
+                    value={albumName}
+                    onChange={event => setAlbumName(event.target.value)}
+                    placeholder={t(
+                      'settings.activity_gallery.create.name_placeholder',
+                      'album folder name, e.g. 2026-04-songkran-event'
+                    )}
+                  />
+                  <div>
+                    <Button
+                      disabled={creatingAlbum}
+                      onClick={createAlbum}
+                      variant="positive"
+                    >
+                      {t('settings.activity_gallery.create.submit', 'Create album')}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-5 shadow-[var(--shadow-card)]">
+                <InputLabelTitle>
+                  {t('settings.activity_gallery.upload.title', 'Upload images')}
+                </InputLabelTitle>
+                <InputLabelDescription>
+                  {t(
+                    'settings.activity_gallery.upload.description',
+                    'Upload one or more image files into an existing album path under the selected root.'
+                  )}
+                </InputLabelDescription>
+                <div className="control-stack max-w-2xl">
+                  <TextField
+                    aria-label="Upload album path"
+                    value={uploadAlbumPath}
+                    onChange={event => setUploadAlbumPath(event.target.value)}
+                    placeholder={t(
+                      'settings.activity_gallery.upload.album_placeholder',
+                      'album path, e.g. 2026-04-songkran-event'
+                    )}
+                  />
+                  <input
+                    ref={fileInputRef}
+                    aria-label="Upload files"
+                    className="file-picker"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={event => setSelectedFiles(event.target.files)}
+                  />
+                  <div>
+                    <Button
+                      disabled={uploading}
+                      onClick={uploadFiles}
+                      variant="positive"
+                    >
+                      {t('settings.activity_gallery.upload.submit', 'Upload files')}
+                    </Button>
+                  </div>
+                  {uploading && uploadProgress !== null && (
+                    <div className="rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <div className="text-sm font-semibold text-[var(--text-primary)]">
+                          {t(
+                            'settings.activity_gallery.upload.progress',
+                            'Uploading files'
+                          )}
+                        </div>
+                        <div className="text-sm text-[var(--text-secondary)]">
+                          {uploadProgress}%
+                        </div>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-[rgba(127,139,163,0.18)]">
+                        <div
+                          className="h-full rounded-full bg-[var(--brand-surface)] transition-all duration-200"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          !loadingRoots && (
+            <InputLabelDescription>
+              {t(
+                'settings.activity_gallery.no_roots',
+                'No owned root albums are configured for the current user.'
+              )}
+            </InputLabelDescription>
+          )
         )}
-      </InputLabelDescription>
-
-      <Loader active={loadingRoots} />
-
-      {rootItems.length > 0 ? (
-        <>
-          <label htmlFor="activity_gallery_root_field">
-            <InputLabelTitle>
-              {t('settings.activity_gallery.root.label', 'Gallery root path')}
-            </InputLabelTitle>
-            <InputLabelDescription>
-              {t(
-                'settings.activity_gallery.root.description',
-                'Choose which owned root path should receive new albums and uploaded files.'
-              )}
-            </InputLabelDescription>
-          </label>
-          <Dropdown
-            id="activity_gallery_root_field"
-            items={rootItems}
-            selected={selectedRoot}
-            setSelected={setSelectedRoot}
-          />
-
-          <div className="mt-4">
-            <InputLabelTitle>
-              {t('settings.activity_gallery.create.title', 'Create album')}
-            </InputLabelTitle>
-            <InputLabelDescription>
-              {t(
-                'settings.activity_gallery.create.description',
-                'Create a new folder-based album under the selected root path. Parent path is optional for nested albums.'
-              )}
-            </InputLabelDescription>
-            <div className="flex flex-col gap-2 max-w-2xl">
-              <TextField
-                aria-label="Album parent path"
-                value={parentPath}
-                onChange={event => setParentPath(event.target.value)}
-                placeholder={t(
-                  'settings.activity_gallery.create.parent_placeholder',
-                  'optional parent path, e.g. 2026-04-events'
-                )}
-              />
-              <TextField
-                aria-label="Album name"
-                value={albumName}
-                onChange={event => setAlbumName(event.target.value)}
-                placeholder={t(
-                  'settings.activity_gallery.create.name_placeholder',
-                  'album folder name, e.g. 2026-04-songkran-event'
-                )}
-              />
-              <div>
-                <Button disabled={creatingAlbum} onClick={createAlbum}>
-                  {t('settings.activity_gallery.create.submit', 'Create album')}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <InputLabelTitle>
-              {t('settings.activity_gallery.upload.title', 'Upload images')}
-            </InputLabelTitle>
-            <InputLabelDescription>
-              {t(
-                'settings.activity_gallery.upload.description',
-                'Upload one or more image files into an existing album path under the selected root.'
-              )}
-            </InputLabelDescription>
-            <div className="flex flex-col gap-2 max-w-2xl">
-              <TextField
-                aria-label="Upload album path"
-                value={uploadAlbumPath}
-                onChange={event => setUploadAlbumPath(event.target.value)}
-                placeholder={t(
-                  'settings.activity_gallery.upload.album_placeholder',
-                  'album path, e.g. 2026-04-songkran-event'
-                )}
-              />
-              <input
-                ref={fileInputRef}
-                aria-label="Upload files"
-                className="block text-sm"
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={event => setSelectedFiles(event.target.files)}
-              />
-              <div>
-                <Button disabled={uploading} onClick={uploadFiles}>
-                  {t('settings.activity_gallery.upload.submit', 'Upload files')}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </>
-      ) : (
-        !loadingRoots && (
-          <InputLabelDescription>
-            {t(
-              'settings.activity_gallery.no_roots',
-              'No owned root albums are configured for the current user.'
-            )}
-          </InputLabelDescription>
-        )
-      )}
+      </div>
     </div>
   )
 }

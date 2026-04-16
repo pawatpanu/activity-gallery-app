@@ -63,9 +63,9 @@ const DateSelector = ({ filterDate, setFilterDate }: DateSelectorProps) => {
 
   return (
     <fieldset>
-      <legend id="filter_group_date-label" className="inline-block mb-1">
+      <legend id="filter_group_date-label" className="field-label">
         <DateIcon
-          className="inline-block align-baseline mr-1"
+          className="mr-1 inline-block align-baseline"
           aria-hidden="true"
         />
         <span>{t('timeline_filter.date.label', 'Date')}</span>
@@ -79,6 +79,7 @@ const DateSelector = ({ filterDate, setFilterDate }: DateSelectorProps) => {
           value={filterDate || 'all'}
           items={items}
           disabled={loading}
+          className="min-w-[190px]"
         />
       </div>
     </fieldset>
@@ -94,7 +95,7 @@ const TimelineFilters = ({
   setFilterDate,
 }: TimelineFiltersProps) => {
   return (
-    <div className="flex items-end gap-4 flex-wrap mb-4">
+    <div className="content-toolbar mb-6">
       <DateSelector filterDate={filterDate} setFilterDate={setFilterDate} />
       <FavoritesCheckbox
         onlyFavorites={onlyFavorites}

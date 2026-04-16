@@ -17,13 +17,20 @@ const Message = forwardRef(
     return (
       <div
         ref={ref}
-        className="bg-white dark:bg-dark-bg2 shadow-md border rounded p-2 h-[84px] relative"
+        className="relative min-h-[92px] rounded-[22px] border px-4 py-3 shadow-[var(--shadow-card)]"
+        style={{
+          background: 'var(--surface-elevated)',
+          borderColor: 'var(--border-subtle)',
+        }}
       >
-        <button onClick={onDismiss} className="absolute top-3 right-2">
-          <DismissIcon className="w-[10px] h-[10px] text-gray-700 dark:text-gray-200" />
+        <button
+          onClick={onDismiss}
+          className="absolute right-3 top-3 rounded-full p-2 text-[var(--text-muted)] transition-colors duration-200 hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
+        >
+          <DismissIcon className="h-[10px] w-[10px]" />
         </button>
-        <h1 className="font-semibold text-sm">{header}</h1>
-        <div className="text-sm">{content}</div>
+        <h1 className="pr-8 text-sm font-bold text-[var(--text-primary)]">{header}</h1>
+        <div className="mt-1 text-sm text-[var(--text-secondary)]">{content}</div>
         {children}
       </div>
     )

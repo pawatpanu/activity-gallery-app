@@ -11,21 +11,32 @@ const Header = () => {
   return (
     <div
       className={classNames(
-        'sticky top-0 z-10 bg-white dark:bg-dark-bg flex items-center justify-between py-3 px-4 lg:px-8 lg:pt-4 shadow-separator lg:shadow-none',
-        { 'mr-[404px]': pinned }
+        'sticky top-0 z-20 px-3 pt-3 md:px-4 lg:px-8 lg:pt-5',
+        { 'lg:pr-[428px]': pinned }
       )}
     >
-      <h1 className="mr-4 lg:mr-8 flex-shrink-0 flex items-center">
-        <img
-          className="h-12 lg:h-10"
-          src={import.meta.env.BASE_URL + 'photoview-logo.svg'}
-          alt="logo"
-        />
-        <span className="hidden lg:block ml-2 text-2xl font-light">
-          Photoview
-        </span>
-      </h1>
-      {authToken() ? <SearchBar /> : null}
+      <div
+        className="floating-surface flex w-full items-center justify-between gap-4 px-4 py-3 md:px-5 md:py-4"
+      >
+        <div className="mr-2 flex min-w-0 items-center gap-3 md:gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-[var(--brand-surface)] shadow-[0_18px_34px_rgba(216,61,103,0.2)]">
+            <img
+              className="h-9 w-9"
+              src={import.meta.env.BASE_URL + 'photoview-logo.svg'}
+              alt="logo"
+            />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[0.72rem] font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+              Premium Gallery
+            </div>
+            <h1 className="truncate text-xl font-extrabold tracking-[-0.04em] text-[var(--text-primary)] md:text-2xl">
+              Photoview
+            </h1>
+          </div>
+        </div>
+        {authToken() ? <SearchBar /> : null}
+      </div>
     </div>
   )
 }

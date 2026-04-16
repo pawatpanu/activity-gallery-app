@@ -40,7 +40,7 @@ const SEARCH_QUERY = gql`
 `
 
 const SearchWrapper = styled.div.attrs({
-  className: 'w-full max-w-xs lg:relative',
+  className: 'w-full max-w-xl lg:relative',
 })``
 
 const SearchBar = () => {
@@ -174,7 +174,7 @@ const SearchBar = () => {
           selectedItemId ? `search-item-${selectedItemId}` : ''
         }
         aria-expanded={expanded}
-        className="w-full py-2 px-3 z-10 relative rounded-md bg-gray-50 focus:bg-white border border-gray-50 focus:border-blue-400 outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 dark:bg-dark-bg2 dark:border-dark-bg2 dark:focus:bg-[#2a2f35]"
+        className="relative z-10 min-h-[50px] w-full rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-inset)] px-4 py-3 text-[0.96rem] text-[var(--text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.3)] outline-none transition-all duration-200 placeholder:text-[var(--text-muted)] focus:border-[rgba(108,132,255,0.48)] focus:bg-[var(--surface-elevated)] focus:ring-[var(--shadow-focus)]"
         type="search"
         placeholder={t('header.search.placeholder', 'Search')}
         onChange={fetchEvent}
@@ -187,7 +187,7 @@ const SearchBar = () => {
 
 const ResultTitle = styled.h1.attrs({
   className:
-    'uppercase text-gray-700 dark:text-gray-200 text-sm font-semibold mt-4 mb-2 mx-1',
+    'mx-1 mb-2 mt-5 text-[0.72rem] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]',
 })``
 
 type SearchResultsProps = {
@@ -243,10 +243,15 @@ const SearchResults = ({
       id="search-results"
       role="listbox"
       className={classNames(
-        'absolute bg-white dark:bg-dark-bg left-0 right-0 top-[72px] overflow-y-auto h-[calc(100vh-152px)] border dark:border-dark-border px-4 z-0',
-        'lg:top-[40px] lg:shadow-md lg:rounded-b lg:max-h-[560px]',
+        'absolute left-0 right-0 top-[78px] z-0 h-[calc(100vh-164px)] overflow-y-auto border px-4 pb-4 pt-2',
+        'rounded-[24px] lg:top-[58px] lg:max-h-[560px]',
         { hidden: !expanded }
       )}
+      style={{
+        background: 'var(--surface-elevated)',
+        borderColor: 'var(--border-subtle)',
+        boxShadow: 'var(--shadow-medium)',
+      }}
       tabIndex={-1}
       onMouseDown={e => {
         // Prevent input blur event
@@ -320,7 +325,7 @@ const SearchRow = ({
       aria-selected={selected}
       onMouseOver={() => setSelected()}
       className={classNames('rounded p-1 mt-1', {
-        'bg-gray-100 dark:bg-dark-bg2': selected,
+        'bg-[var(--surface-muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]': selected,
       })}
     >
       <NavLink to={link} className="flex items-center" tabIndex={-1}>
@@ -346,7 +351,7 @@ const PhotoRow = ({ query, media, selected, setSelected }: PhotoRowArgs) => (
     preview={
       <ProtectedImage
         src={media?.thumbnail?.url}
-        className="w-14 h-14 object-cover"
+        className="h-14 w-14 rounded-[16px] object-cover"
       />
     }
     label={searchHighlighted(query, media.title)}
@@ -370,7 +375,7 @@ const AlbumRow = ({ query, album, selected, setSelected }: AlbumRowArgs) => (
     preview={
       <ProtectedImage
         src={album?.thumbnail?.thumbnail?.url}
-        className="w-14 h-14 rounded object-cover"
+        className="h-14 w-14 rounded-[16px] object-cover"
       />
     }
     label={searchHighlighted(query, album.title)}
@@ -393,7 +398,7 @@ const searchHighlighted = (query: string, text: string) => {
   return (
     <span>
       {start}
-      <span className="font-semibold whitespace-pre">{middle}</span>
+      <span className="font-semibold whitespace-pre text-[var(--text-primary)]">{middle}</span>
       {end}
     </span>
   )
