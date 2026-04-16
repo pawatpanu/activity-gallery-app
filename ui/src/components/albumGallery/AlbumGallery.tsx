@@ -50,6 +50,7 @@ type AlbumGalleryProps = {
   onlyFavorites?: boolean
   onFavorite?(): void
   titleActions?: React.ReactNode
+  toolbarActions?: React.ReactNode
   renderSubAlbumActions?(
     album: AlbumGalleryFields['subAlbums'][number]
   ): React.ReactNode
@@ -68,6 +69,7 @@ const AlbumGallery = React.forwardRef(
       ordering,
       onlyFavorites = false,
       titleActions,
+      toolbarActions,
       renderSubAlbumActions,
       onMediaDeleted,
     }: AlbumGalleryProps,
@@ -124,6 +126,9 @@ const AlbumGallery = React.forwardRef(
               setOrdering={setOrdering}
               ordering={ordering}
             />
+            {toolbarActions ? (
+              <div className="toolbar-actions">{toolbarActions}</div>
+            ) : null}
           </div>
         )}
         <AlbumTitle album={album} disableLink actions={titleActions} />

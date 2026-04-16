@@ -39,12 +39,14 @@ const UploadToAlbumModal = ({
   const [files, setFiles] = useState<FileList | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [uploadSummary, setUploadSummary] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const resetState = () => {
     setFiles(null)
     setUploading(false)
     setUploadProgress(null)
+    setUploadSummary('')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -72,6 +74,12 @@ const UploadToAlbumModal = ({
 
     setUploading(true)
     setUploadProgress(0)
+    setUploadSummary(
+      t(
+        'albums_page.media_upload.progress.summary',
+        `${files.length} file(s) ready to upload`
+      )
+    )
     try {
       await uploadFilesToAlbumWithProgress(albumId, Array.from(files), (loaded, total) => {
         const percent = total ? Math.round((loaded / total) * 100) : 100
@@ -79,6 +87,12 @@ const UploadToAlbumModal = ({
       })
 
       setUploadProgress(100)
+      setUploadSummary(
+        t(
+          'albums_page.media_upload.progress.completed_summary',
+          `${files.length} file(s) uploaded successfully`
+        )
+      )
       addMessage(
         t('albums_page.media_upload.success.title', 'Upload complete'),
         t(
@@ -156,6 +170,11 @@ const UploadToAlbumModal = ({
                   {uploadProgress}%
                 </div>
               </div>
+              {uploadSummary ? (
+                <div className="mb-3 text-sm text-[var(--text-secondary)]">
+                  {uploadSummary}
+                </div>
+              ) : null}
               <div className="h-2 overflow-hidden rounded-full bg-[rgba(127,139,163,0.18)]">
                 <div
                   className="h-full rounded-full bg-[var(--brand-surface)] transition-all duration-200"

@@ -191,28 +191,7 @@ function AlbumPage() {
         showFilter
         setOrdering={orderParams.setOrdering}
         ordering={orderParams}
-        onMediaDeleted={() => {
-          void refetch()
-        }}
-        renderSubAlbumActions={
-          isAdmin
-            ? album => (
-                <Button
-                  variant="negative"
-                  className="min-h-[38px] px-4 py-2 text-[0.82rem]"
-                  onClick={() =>
-                    setAlbumToDelete({
-                      id: album.id,
-                      title: album.title,
-                    })
-                  }
-                >
-                  {t('albums_page.delete.action', 'Delete')}
-                </Button>
-              )
-            : undefined
-        }
-        titleActions={
+        toolbarActions={
           isAdmin && data?.album ? (
             <>
               <Button
@@ -241,6 +220,27 @@ function AlbumPage() {
               </Button>
             </>
           ) : null
+        }
+        onMediaDeleted={() => {
+          void refetch()
+        }}
+        renderSubAlbumActions={
+          isAdmin
+            ? album => (
+                <Button
+                  variant="negative"
+                  className="min-h-[38px] px-4 py-2 text-[0.82rem]"
+                  onClick={() =>
+                    setAlbumToDelete({
+                      id: album.id,
+                      title: album.title,
+                    })
+                  }
+                >
+                  {t('albums_page.delete.action', 'Delete')}
+                </Button>
+              )
+            : undefined
         }
       />
       {isAdmin && data?.album && (

@@ -64,6 +64,7 @@ const ActivityGalleryModal = ({
   const [submitting, setSubmitting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [uploadStage, setUploadStage] = useState('')
+  const [uploadSummary, setUploadSummary] = useState('')
   const [parentPath, setParentPath] = useState('')
   const [albumName, setAlbumName] = useState('')
   const [mainImage, setMainImage] = useState<File | null>(null)
@@ -125,6 +126,7 @@ const ActivityGalleryModal = ({
     setAlbumImages(null)
     setUploadProgress(null)
     setUploadStage('')
+    setUploadSummary('')
     if (mainImageInputRef.current) {
       mainImageInputRef.current.value = ''
     }
@@ -208,12 +210,26 @@ const ActivityGalleryModal = ({
         (sum, batch) => sum + batch.files.reduce((acc, file) => acc + file.size, 0),
         0
       )
+      const totalFiles = uploadBatches.reduce(
+        (sum, batch) => sum + batch.files.length,
+        0
+      )
       let completedBytes = 0
 
-      const trackBatchProgress = (stageLabel: string, files: File[]) => {
+      const trackBatchProgress = (
+        stageLabel: string,
+        files: File[],
+        batchIndex: number
+      ) => {
         const batchBytes = files.reduce((acc, file) => acc + file.size, 0)
 
         setUploadStage(stageLabel)
+        setUploadSummary(
+          t(
+            'albums_page.activity_gallery.progress.summary',
+            `${files.length} file(s) in step ${batchIndex + 1} of ${uploadBatches.length}`
+          )
+        )
         return (loaded: number, total: number) => {
           const effectiveTotal = total || batchBytes || 1
           const normalizedLoaded = Math.min(loaded, effectiveTotal)
@@ -231,7 +247,8 @@ const ActivityGalleryModal = ({
           [mainImage],
           trackBatchProgress(
             t('albums_page.activity_gallery.progress.cover', 'Uploading cover image'),
-            [mainImage]
+            [mainImage],
+            0
           )
         )
         completedBytes += mainImage.size
@@ -245,7 +262,8 @@ const ActivityGalleryModal = ({
           files,
           trackBatchProgress(
             t('albums_page.activity_gallery.progress.media', 'Uploading album images'),
-            files
+            files,
+            mainImage ? 1 : 0
           )
         )
         completedBytes += files.reduce((acc, file) => acc + file.size, 0)
@@ -253,6 +271,12 @@ const ActivityGalleryModal = ({
 
       if (uploadBatches.length > 0) {
         setUploadProgress(100)
+        setUploadSummary(
+          t(
+            'albums_page.activity_gallery.progress.completed_summary',
+            `${totalFiles} file(s) uploaded successfully`
+          )
+        )
       }
 
       addMessage(
@@ -393,6 +417,11 @@ const ActivityGalleryModal = ({
                     {uploadProgress}%
                   </div>
                 </div>
+                {uploadSummary ? (
+                  <div className="mb-3 text-sm text-[var(--text-secondary)]">
+                    {uploadSummary}
+                  </div>
+                ) : null}
                 <div className="h-2 overflow-hidden rounded-full bg-[rgba(127,139,163,0.18)]">
                   <div
                     className="h-full rounded-full bg-[var(--brand-surface)] transition-all duration-200"
