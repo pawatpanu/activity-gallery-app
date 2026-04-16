@@ -8,6 +8,7 @@ export type ActivityGalleryActionResponse = {
   message: string
   relativePath?: string
   rootPath?: string
+  activityPath?: string
   files?: string[]
 }
 

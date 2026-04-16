@@ -14,9 +14,15 @@ import {
   uploadFilesWithProgress,
 } from './uploadWithProgress'
 
+type ActivityGalleryActivity = {
+  title: string
+  relativePath: string
+}
+
 type ActivityGalleryRoot = {
   title: string
   path: string
+  activities?: ActivityGalleryActivity[]
 }
 
 type ActivityGalleryConfigResponse = {
@@ -36,6 +42,7 @@ const ACTIVITY_GALLERY_CREATE_ALBUM_URL = urlJoin(
   API_ENDPOINT,
   '/activity-gallery/albums'
 )
+const NEW_ACTIVITY_VALUE = '__new_activity__'
 
 const addMessage = (header: string, content: string, negative = false) => {
   MessageState.add({
@@ -60,12 +67,14 @@ const ActivityGalleryModal = ({
   const { t } = useTranslation()
   const [roots, setRoots] = useState<ActivityGalleryRoot[]>([])
   const [selectedRoot, setSelectedRoot] = useState('')
+  const [selectedActivityPath, setSelectedActivityPath] =
+    useState<string>(NEW_ACTIVITY_VALUE)
   const [loadingRoots, setLoadingRoots] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [uploadStage, setUploadStage] = useState('')
   const [uploadSummary, setUploadSummary] = useState('')
-  const [parentPath, setParentPath] = useState('')
+  const [activityName, setActivityName] = useState('')
   const [albumName, setAlbumName] = useState('')
   const [mainImage, setMainImage] = useState<File | null>(null)
   const [albumImages, setAlbumImages] = useState<FileList | null>(null)
@@ -85,18 +94,28 @@ const ActivityGalleryModal = ({
       .then(async response => {
         const data = (await response.json()) as ActivityGalleryConfigResponse
         if (!response.ok) {
-          throw new Error(data.message || 'Could not load activity gallery config')
+          throw new Error(
+            data.message || 'Could not load activity gallery config'
+          )
         }
 
         setRoots(data.roots)
-        setSelectedRoot(current =>
-          current || (data.roots.length > 0 ? data.roots[0].path : '')
+        const firstRootPath = data.roots.length > 0 ? data.roots[0].path : ''
+        const firstActivityPath =
+          data.roots[0]?.activities?.[0]?.relativePath || NEW_ACTIVITY_VALUE
+
+        setSelectedRoot(current => current || firstRootPath)
+        setSelectedActivityPath(current =>
+          current === NEW_ACTIVITY_VALUE || current ? current : firstActivityPath
         )
       })
       .catch(error => {
         if (abortController.signal.aborted) return
         addMessage(
-          t('albums_page.activity_gallery.load_failed.title', 'Activity gallery error'),
+          t(
+            'albums_page.activity_gallery.load_failed.title',
+            'โหลดข้อมูลกิจกรรมไม่สำเร็จ'
+          ),
           error.message,
           true
         )
@@ -110,17 +129,47 @@ const ActivityGalleryModal = ({
     return () => abortController.abort()
   }, [open, t])
 
+  useEffect(() => {
+    if (!selectedRoot) return
+
+    const matchedRoot = roots.find(root => root.path === selectedRoot)
+    const activityPath = matchedRoot?.activities?.[0]?.relativePath
+    setSelectedActivityPath(activityPath || NEW_ACTIVITY_VALUE)
+  }, [roots, selectedRoot])
+
   const rootItems = useMemo<DropdownItem[]>(
     () =>
       roots.map(root => ({
         value: root.path,
-        label: `${root.title} (${root.path})`,
+        label: root.title,
       })),
     [roots]
   )
 
+  const selectedRootConfig = useMemo(
+    () => roots.find(root => root.path === selectedRoot),
+    [roots, selectedRoot]
+  )
+
+  const activityItems = useMemo<DropdownItem[]>(
+    () => [
+      {
+        value: NEW_ACTIVITY_VALUE,
+        label: t(
+          'albums_page.activity_gallery.activity_selector.new',
+          'สร้างกิจกรรมใหม่'
+        ),
+      },
+      ...((selectedRootConfig?.activities || []).map(activity => ({
+        value: activity.relativePath,
+        label: activity.title,
+      })) as DropdownItem[]),
+    ],
+    [selectedRootConfig?.activities, t]
+  )
+
   const resetForm = () => {
-    setParentPath('')
+    setActivityName('')
     setAlbumName('')
     setMainImage(null)
     setAlbumImages(null)
@@ -144,10 +193,29 @@ const ActivityGalleryModal = ({
   const createAlbum = async () => {
     if (submitting) return
 
-    if (!selectedRoot) {
+    if (!parentAlbumId && !selectedRoot) {
       addMessage(
-        t('albums_page.activity_gallery.validation.title', 'Validation error'),
-        t('albums_page.activity_gallery.validation.root_required', 'Please choose a root path'),
+        t('albums_page.activity_gallery.validation.title', 'ข้อมูลไม่ครบ'),
+        t(
+          'albums_page.activity_gallery.validation.root_required',
+          'กรุณาเลือกคลังหลัก'
+        ),
+        true
+      )
+      return
+    }
+
+    if (
+      !parentAlbumId &&
+      selectedActivityPath === NEW_ACTIVITY_VALUE &&
+      !activityName.trim()
+    ) {
+      addMessage(
+        t('albums_page.activity_gallery.validation.title', 'ข้อมูลไม่ครบ'),
+        t(
+          'albums_page.activity_gallery.validation.activity_name_required',
+          'กรุณาระบุชื่อกิจกรรม'
+        ),
         true
       )
       return
@@ -155,8 +223,11 @@ const ActivityGalleryModal = ({
 
     if (!albumName.trim()) {
       addMessage(
-        t('albums_page.activity_gallery.validation.title', 'Validation error'),
-        t('albums_page.activity_gallery.validation.album_name_required', 'Album name is required'),
+        t('albums_page.activity_gallery.validation.title', 'ข้อมูลไม่ครบ'),
+        t(
+          'albums_page.activity_gallery.validation.album_name_required',
+          'กรุณาระบุชื่ออัลบั้ม'
+        ),
         true
       )
       return
@@ -165,6 +236,7 @@ const ActivityGalleryModal = ({
     setSubmitting(true)
     setUploadProgress(null)
     setUploadStage('')
+
     try {
       const targetCreateUrl = parentAlbumId
         ? urlJoin(ACTIVITY_GALLERY_CREATE_ALBUM_URL, parentAlbumId, 'children')
@@ -178,7 +250,14 @@ const ActivityGalleryModal = ({
         },
         body: JSON.stringify({
           rootPath: selectedRoot,
-          parentPath,
+          activityName:
+            !parentAlbumId && selectedActivityPath === NEW_ACTIVITY_VALUE
+              ? activityName
+              : undefined,
+          activityPath:
+            !parentAlbumId && selectedActivityPath !== NEW_ACTIVITY_VALUE
+              ? selectedActivityPath
+              : undefined,
           albumName,
         }),
       })
@@ -194,20 +273,21 @@ const ActivityGalleryModal = ({
           files: mainImage ? [mainImage] : [],
           label: t(
             'albums_page.activity_gallery.progress.cover',
-            'Uploading cover image'
+            'กำลังอัปโหลดรูปหลัก'
           ),
         },
         {
           files: albumImages ? Array.from(albumImages) : [],
           label: t(
             'albums_page.activity_gallery.progress.media',
-            'Uploading album images'
+            'กำลังอัปโหลดรูปภายในอัลบั้ม'
           ),
         },
       ].filter(batch => batch.files.length > 0)
 
       const totalBytes = uploadBatches.reduce(
-        (sum, batch) => sum + batch.files.reduce((acc, file) => acc + file.size, 0),
+        (sum, batch) =>
+          sum + batch.files.reduce((acc, file) => acc + file.size, 0),
         0
       )
       const totalFiles = uploadBatches.reduce(
@@ -227,9 +307,10 @@ const ActivityGalleryModal = ({
         setUploadSummary(
           t(
             'albums_page.activity_gallery.progress.summary',
-            `${files.length} file(s) in step ${batchIndex + 1} of ${uploadBatches.length}`
+            `กำลังอัปโหลด ${files.length} ไฟล์ ขั้นตอนที่ ${batchIndex + 1} จาก ${uploadBatches.length}`
           )
         )
+
         return (loaded: number, total: number) => {
           const effectiveTotal = total || batchBytes || 1
           const normalizedLoaded = Math.min(loaded, effectiveTotal)
@@ -246,7 +327,10 @@ const ActivityGalleryModal = ({
           data.relativePath,
           [mainImage],
           trackBatchProgress(
-            t('albums_page.activity_gallery.progress.cover', 'Uploading cover image'),
+            t(
+              'albums_page.activity_gallery.progress.cover',
+              'กำลังอัปโหลดรูปหลัก'
+            ),
             [mainImage],
             0
           )
@@ -261,7 +345,10 @@ const ActivityGalleryModal = ({
           data.relativePath,
           files,
           trackBatchProgress(
-            t('albums_page.activity_gallery.progress.media', 'Uploading album images'),
+            t(
+              'albums_page.activity_gallery.progress.media',
+              'กำลังอัปโหลดรูปภายในอัลบั้ม'
+            ),
             files,
             mainImage ? 1 : 0
           )
@@ -274,16 +361,19 @@ const ActivityGalleryModal = ({
         setUploadSummary(
           t(
             'albums_page.activity_gallery.progress.completed_summary',
-            `${totalFiles} file(s) uploaded successfully`
+            `อัปโหลดสำเร็จ ${totalFiles} ไฟล์`
           )
         )
       }
 
       addMessage(
-        t('albums_page.activity_gallery.create_success.title', 'Album created'),
+        t(
+          'albums_page.activity_gallery.create_success.title',
+          'เพิ่มอัลบั้มสำเร็จ'
+        ),
         t(
           'albums_page.activity_gallery.create_success.description',
-          'The album and selected images were added successfully.'
+          'สร้างอัลบั้มและเพิ่มรูปภาพเรียบร้อยแล้ว'
         )
       )
 
@@ -292,7 +382,10 @@ const ActivityGalleryModal = ({
       onCompleted?.()
     } catch (error) {
       addMessage(
-        t('albums_page.activity_gallery.create_failed.title', 'Create album failed'),
+        t(
+          'albums_page.activity_gallery.create_failed.title',
+          'เพิ่มอัลบั้มไม่สำเร็จ'
+        ),
         error instanceof Error ? error.message : String(error),
         true
       )
@@ -307,19 +400,19 @@ const ActivityGalleryModal = ({
       onClose={() => {
         if (!submitting) onClose()
       }}
-      title={t('albums_page.activity_gallery.modal.title', 'Create album')}
+      title={t('albums_page.activity_gallery.modal.title', 'เพิ่มอัลบั้ม')}
       description={t(
         parentAlbumId
           ? 'albums_page.activity_gallery.modal.description_child'
           : 'albums_page.activity_gallery.modal.description',
         parentAlbumId
-          ? `Create a new album inside ${parentAlbumTitle || 'this collection'}, choose a main image for the cover, and add more images in one step.`
-          : 'Create a new album, choose a main image for the cover, and add more images in one step.'
+          ? `สร้างอัลบั้มใหม่ภายใต้ ${parentAlbumTitle || 'กิจกรรมนี้'} พร้อมเลือกรูปหลักและเพิ่มรูปภายในอัลบั้มได้ในหน้าต่างเดียว`
+          : 'สร้างอัลบั้มใหม่ภายใต้กิจกรรม พร้อมเลือกรูปหลักและเพิ่มรูปภายในอัลบั้มได้ในหน้าต่างเดียว'
       )}
       actions={[
         {
           key: 'cancel',
-          label: t('general.action.cancel', 'Cancel'),
+          label: t('general.action.cancel', 'ยกเลิก'),
           onClick: () => {
             if (!submitting) onClose()
           },
@@ -327,7 +420,10 @@ const ActivityGalleryModal = ({
         },
         {
           key: 'create',
-          label: t('albums_page.activity_gallery.modal.submit', 'Add album'),
+          label: t(
+            'albums_page.activity_gallery.modal.submit',
+            'เพิ่มอัลบั้ม'
+          ),
           onClick: () => {
             void createAlbum()
           },
@@ -344,7 +440,7 @@ const ActivityGalleryModal = ({
               <div>
                 <label htmlFor="activity_gallery_modal_root">
                   <span className="field-label">
-                    {t('albums_page.activity_gallery.root.label', 'Gallery root path')}
+                    {t('albums_page.activity_gallery.root.label', 'คลังหลัก')}
                   </span>
                 </label>
                 <Dropdown
@@ -353,36 +449,79 @@ const ActivityGalleryModal = ({
                   selected={selectedRoot}
                   setSelected={setSelectedRoot}
                 />
+                <p className="field-help">
+                  {t(
+                    'albums_page.activity_gallery.root.description',
+                    'เลือกคลังหลักที่ใช้เก็บกิจกรรมและอัลบั้มของหน่วยงาน'
+                  )}
+                </p>
               </div>
             )}
 
             {!parentAlbumId && (
-              <TextField
-                label={t('albums_page.activity_gallery.parent_path.label', 'Parent path')}
-                value={parentPath}
-                onChange={event => setParentPath(event.target.value)}
-                placeholder={t(
-                  'albums_page.activity_gallery.parent_path.placeholder',
-                  'optional parent path, e.g. 2026-04-events'
-                )}
-                fullWidth
-              />
+              <>
+                <div>
+                  <label htmlFor="activity_gallery_modal_activity">
+                    <span className="field-label">
+                      {t(
+                        'albums_page.activity_gallery.activity_selector.label',
+                        'เลือกกิจกรรมที่มีอยู่'
+                      )}
+                    </span>
+                  </label>
+                  <Dropdown
+                    id="activity_gallery_modal_activity"
+                    items={activityItems}
+                    selected={selectedActivityPath}
+                    setSelected={setSelectedActivityPath}
+                  />
+                </div>
+
+                {selectedActivityPath === NEW_ACTIVITY_VALUE ? (
+                  <TextField
+                    label={t(
+                      'albums_page.activity_gallery.activity_name.label',
+                      'ชื่อกิจกรรม'
+                    )}
+                    value={activityName}
+                    onChange={event => setActivityName(event.target.value)}
+                    placeholder={t(
+                      'albums_page.activity_gallery.activity_name.placeholder',
+                      'เช่น สงกรานต์ 2569, ประชุมวิชาการ, กีฬาสี'
+                    )}
+                    fullWidth
+                  />
+                ) : null}
+
+                <p className="field-help">
+                  {t(
+                    'albums_page.activity_gallery.activity_name.description',
+                    'ชื่อกิจกรรมใช้สำหรับจัดหมวดหมู่อัลบั้มที่เกี่ยวข้องกัน เช่น สงกรานต์ 2569, ประชุมวิชาการ, กีฬาสี'
+                  )}
+                </p>
+              </>
             )}
 
             <TextField
-              label={t('albums_page.activity_gallery.album_name.label', 'Album name')}
+              label={t(
+                'albums_page.activity_gallery.album_name.label',
+                'ชื่ออัลบั้ม'
+              )}
               value={albumName}
               onChange={event => setAlbumName(event.target.value)}
               placeholder={t(
                 'albums_page.activity_gallery.album_name.placeholder',
-                'album folder name, e.g. 2026-04-songkran-event'
+                'เช่น วันแรก, พิธีเปิด, มอบรางวัล'
               )}
               fullWidth
             />
 
             <label className="block text-sm">
               <span className="field-label">
-                {t('albums_page.activity_gallery.main_image.label', 'Main image')}
+                {t(
+                  'albums_page.activity_gallery.main_image.label',
+                  'รูปหลัก'
+                )}
               </span>
               <input
                 ref={mainImageInputRef}
@@ -395,7 +534,10 @@ const ActivityGalleryModal = ({
 
             <label className="block text-sm">
               <span className="field-label">
-                {t('albums_page.activity_gallery.album_images.label', 'Album images')}
+                {t(
+                  'albums_page.activity_gallery.album_images.label',
+                  'รูปภายในอัลบั้ม'
+                )}
               </span>
               <input
                 ref={albumImagesInputRef}
@@ -411,7 +553,11 @@ const ActivityGalleryModal = ({
               <div className="rounded-[18px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4">
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-[var(--text-primary)]">
-                    {uploadStage || t('albums_page.activity_gallery.progress.default', 'Uploading files')}
+                    {uploadStage ||
+                      t(
+                        'albums_page.activity_gallery.progress.default',
+                        'กำลังอัปโหลดไฟล์'
+                      )}
                   </div>
                   <div className="text-sm text-[var(--text-secondary)]">
                     {uploadProgress}%
@@ -436,7 +582,7 @@ const ActivityGalleryModal = ({
             <p className="text-sm">
               {t(
                 'albums_page.activity_gallery.no_roots',
-                'No owned root albums are configured for the current user.'
+                'ยังไม่มีคลังหลักที่ผู้ใช้คนปัจจุบันสามารถจัดการได้'
               )}
             </p>
           )

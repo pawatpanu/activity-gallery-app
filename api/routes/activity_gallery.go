@@ -23,8 +23,14 @@ import (
 const maxUploadMemory = 256 << 20 // 256 MB
 
 type activityGalleryRoot struct {
-	Title string `json:"title"`
-	Path  string `json:"path"`
+	Title      string                  `json:"title"`
+	Path       string                  `json:"path"`
+	Activities []activityGalleryFolder `json:"activities,omitempty"`
+}
+
+type activityGalleryFolder struct {
+	Title        string `json:"title"`
+	RelativePath string `json:"relativePath"`
 }
 
 type activityGalleryConfigResponse struct {
@@ -32,9 +38,13 @@ type activityGalleryConfigResponse struct {
 }
 
 type createAlbumRequest struct {
-	RootPath   string `json:"rootPath"`
-	ParentPath string `json:"parentPath"`
-	AlbumName  string `json:"albumName"`
+	RootPath     string `json:"rootPath"`
+	// ParentPath is kept as a backward-compatible internal field for older
+	// clients. The user-facing business concept is now "activity name".
+	ParentPath   string `json:"parentPath"`
+	ActivityName string `json:"activityName"`
+	ActivityPath string `json:"activityPath"`
+	AlbumName    string `json:"albumName"`
 }
 
 type createAlbumResponse struct {
@@ -42,6 +52,7 @@ type createAlbumResponse struct {
 	Message      string `json:"message"`
 	RelativePath string `json:"relativePath"`
 	RootPath     string `json:"rootPath,omitempty"`
+	ActivityPath string `json:"activityPath,omitempty"`
 }
 
 type uploadMediaResponse struct {
@@ -78,9 +89,16 @@ func activityGalleryConfigHandler(db *gorm.DB) http.HandlerFunc {
 			Roots: make([]activityGalleryRoot, 0, len(roots)),
 		}
 		for _, root := range roots {
+			activities, activitiesErr := directChildActivities(db, root)
+			if activitiesErr != nil {
+				writeJSONError(w, http.StatusInternalServerError, activitiesErr.Error())
+				return
+			}
+
 			resp.Roots = append(resp.Roots, activityGalleryRoot{
-				Title: root.Title,
-				Path:  root.Path,
+				Title:      root.Title,
+				Path:       root.Path,
+				Activities: activities,
 			})
 		}
 
@@ -107,25 +125,35 @@ func createAlbumHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		relativeParentPath, err := normalizeRelativePath(req.ParentPath)
+		relativeParentPath, err := resolveActivityRelativePath(req)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 
-		albumName := strings.TrimSpace(req.AlbumName)
-		if albumName == "" {
+		albumName, err := sanitizeStorageSegment(req.AlbumName)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "album name is required")
 			return
 		}
-		if strings.Contains(albumName, "/") || strings.Contains(albumName, "\\") || albumName == "." || albumName == ".." {
-			writeJSONError(w, http.StatusBadRequest, "album name must not contain path separators")
+
+		activityDir, resolvedActivityPath, err := resolveAuthorizedChildPath(rootPath, relativeParentPath, "")
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		if err := os.MkdirAll(activityDir, 0o755); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("could not create activity directory: %v", err))
 			return
 		}
 
-		targetDir, relativeAlbumPath, err := resolveAuthorizedChildPath(rootPath, relativeParentPath, albumName)
+		targetDir, relativeAlbumPath, err := resolveAuthorizedChildPath(rootPath, resolvedActivityPath, albumName)
 		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		if info, statErr := os.Stat(targetDir); statErr == nil && info.IsDir() {
+			writeJSONError(w, http.StatusConflict, "album already exists in this activity")
 			return
 		}
 
@@ -144,6 +172,7 @@ func createAlbumHandler(db *gorm.DB) http.HandlerFunc {
 			Message:      "Album created and scanner queued",
 			RelativePath: relativeAlbumPath,
 			RootPath:     rootPath,
+			ActivityPath: resolvedActivityPath,
 		})
 	}
 }
@@ -167,13 +196,9 @@ func createChildAlbumHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		albumName := strings.TrimSpace(req.AlbumName)
-		if albumName == "" {
+		albumName, err := sanitizeStorageSegment(req.AlbumName)
+		if err != nil {
 			writeJSONError(w, http.StatusBadRequest, "album name is required")
-			return
-		}
-		if strings.Contains(albumName, "/") || strings.Contains(albumName, "\\") || albumName == "." || albumName == ".." {
-			writeJSONError(w, http.StatusBadRequest, "album name must not contain path separators")
 			return
 		}
 
@@ -212,6 +237,10 @@ func createChildAlbumHandler(db *gorm.DB) http.HandlerFunc {
 			writeJSONError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		if info, statErr := os.Stat(targetDir); statErr == nil && info.IsDir() {
+			writeJSONError(w, http.StatusConflict, "album already exists in this activity")
+			return
+		}
 
 		if err := os.MkdirAll(targetDir, 0o755); err != nil {
 			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("could not create album directory: %v", err))
@@ -228,6 +257,7 @@ func createChildAlbumHandler(db *gorm.DB) http.HandlerFunc {
 			Message:      "Album created and scanner queued",
 			RelativePath: relativeAlbumPath,
 			RootPath:     rootPath,
+			ActivityPath: relativeParentPath,
 		})
 	}
 }
@@ -554,6 +584,29 @@ func userOwnedRootAlbums(db *gorm.DB, user *models.User) ([]*models.Album, error
 	return albums, err
 }
 
+func directChildActivities(db *gorm.DB, root *models.Album) ([]activityGalleryFolder, error) {
+	var childAlbums []models.Album
+	if err := db.Where("parent_album_id = ?", root.ID).Order("title ASC").Find(&childAlbums).Error; err != nil {
+		return nil, err
+	}
+
+	activities := make([]activityGalleryFolder, 0, len(childAlbums))
+	cleanRootPath := path.Clean(root.Path)
+	for _, album := range childAlbums {
+		relativePath := strings.TrimPrefix(strings.TrimPrefix(path.Clean(album.Path), cleanRootPath), "/")
+		if relativePath == "" {
+			continue
+		}
+
+		activities = append(activities, activityGalleryFolder{
+			Title:        album.Title,
+			RelativePath: relativePath,
+		})
+	}
+
+	return activities, nil
+}
+
 func authorizedRootPath(db *gorm.DB, user *models.User, rootPath string) (string, error) {
 	rootPath = path.Clean(strings.TrimSpace(rootPath))
 	if rootPath == "." || rootPath == "" {
@@ -571,6 +624,33 @@ func authorizedRootPath(db *gorm.DB, user *models.User, rootPath string) (string
 	}
 
 	return "", fmt.Errorf("root path is not owned by the current user")
+}
+
+// resolveActivityRelativePath maps the Thai business concept "activity name"
+// to the existing internal folder path structure used by the scanner.
+func resolveActivityRelativePath(req createAlbumRequest) (string, error) {
+	activityPath, err := normalizeRelativePath(req.ActivityPath)
+	if err != nil {
+		return "", err
+	}
+	if activityPath != "" {
+		return activityPath, nil
+	}
+
+	if strings.TrimSpace(req.ActivityName) != "" {
+		return sanitizeStorageSegment(req.ActivityName)
+	}
+
+	// Backward-compatible fallback for older clients that still send parentPath.
+	legacyParentPath, err := normalizeRelativePath(req.ParentPath)
+	if err != nil {
+		return "", err
+	}
+	if legacyParentPath != "" {
+		return legacyParentPath, nil
+	}
+
+	return "", fmt.Errorf("activity name is required")
 }
 
 func ownedAlbumForUser(db *gorm.DB, user *models.User, albumID int) (*models.Album, string, error) {
@@ -611,6 +691,33 @@ func normalizeRelativePath(relativePath string) (string, error) {
 		return "", fmt.Errorf("relative path must stay inside the media root")
 	}
 	return cleaned, nil
+}
+
+func sanitizeStorageSegment(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "", fmt.Errorf("value is required")
+	}
+
+	replacer := strings.NewReplacer(
+		"/", "-",
+		"\\", "-",
+		":", "-",
+		"*", "-",
+		"?", "",
+		"\"", "",
+		"<", "",
+		">", "",
+		"|", "-",
+	)
+	value = replacer.Replace(value)
+	value = strings.Join(strings.Fields(value), " ")
+	value = strings.Trim(value, ". ")
+	if value == "" || value == "." || value == ".." {
+		return "", fmt.Errorf("value is required")
+	}
+
+	return value, nil
 }
 
 func resolveAuthorizedChildPath(rootPath string, relativeParentPath string, childName string) (string, string, error) {
