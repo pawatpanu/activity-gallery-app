@@ -81,10 +81,14 @@ const UploadToAlbumModal = ({
       )
     )
     try {
-      await uploadFilesToAlbumWithProgress(albumId, Array.from(files), (loaded, total) => {
-        const percent = total ? Math.round((loaded / total) * 100) : 100
-        setUploadProgress(percent)
-      })
+      await uploadFilesToAlbumWithProgress(
+        albumId,
+        Array.from(files) as File[],
+        (loaded, total) => {
+          const percent = total ? Math.round((loaded / total) * 100) : 100
+          setUploadProgress(percent)
+        }
+      )
 
       setUploadProgress(100)
       setUploadSummary(
@@ -177,7 +181,7 @@ const UploadToAlbumModal = ({
               ) : null}
               <div className="h-2 overflow-hidden rounded-full bg-[rgba(127,139,163,0.18)]">
                 <div
-                  className="h-full rounded-full bg-[var(--brand-surface)] transition-all duration-200"
+                  className="brand-surface-bg h-full rounded-full transition-all duration-200"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>

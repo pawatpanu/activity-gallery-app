@@ -48,12 +48,6 @@ const SettingsPage = () => {
     <Layout title={t('title.settings', 'Settings')}>
       <div className="mb-8">
         <h1 className="page-title">{t('title.settings', 'Settings')}</h1>
-        <p className="page-subtitle">
-          {t(
-            'settings.page_description',
-            'Manage your workspace preferences, scanner behavior, user access, and media operations with a cohesive control center.'
-          )}
-        </p>
       </div>
       <UserPreferences />
       {isAdmin && (

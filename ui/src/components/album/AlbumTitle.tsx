@@ -122,9 +122,6 @@ const AlbumTitle = ({
         <h1 className="min-w-0 truncate text-[2.35rem] font-extrabold tracking-[-0.05em] text-[var(--text-primary)] md:text-[2.75rem]">
           {title}
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
-          อัลบั้มนี้อยู่ภายใต้กิจกรรมเดียวกันกับอัลบั้มที่เกี่ยวข้อง คุณสามารถเพิ่มรูป ลบรูป และจัดการอัลบั้มได้จากหน้านี้
-        </p>
       </div>
       {authToken() && (
         <div className="ml-2 flex flex-wrap items-center gap-2 self-start md:self-end">

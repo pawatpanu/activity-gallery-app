@@ -112,11 +112,6 @@ const AlbumGallery = React.forwardRef(
 
     return (
       <div ref={ref}>
-        <div className="mb-6">
-          <div className="page-subtitle max-w-2xl">
-            จัดการอัลบั้มย่อยและรูปภาพภายใต้กิจกรรมนี้ได้ในหน้าจอเดียว พร้อมเพิ่มรูปและดูแลเนื้อหาอย่างเป็นระเบียบ
-          </div>
-        </div>
         {showFilter && (
           <div className="content-toolbar mb-6">
             <AlbumFilter

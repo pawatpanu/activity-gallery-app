@@ -130,12 +130,6 @@ const AlbumsPage = () => {
     <Layout title={t('sidemenu.albums', 'อัลบั้ม')}>
       <div className="mb-8">
         <h1 className="page-title">{t('sidemenu.albums', 'อัลบั้ม')}</h1>
-        <p className="page-subtitle">
-          {t(
-            'albums_page.description',
-            'จัดการคลังภาพแบบ กิจกรรม > อัลบั้ม > รูปภาพ สร้างอัลบั้มใหม่ภายใต้กิจกรรม และดูแลรูปทั้งหมดได้จากหน้าจอเดียว'
-          )}
-        </p>
       </div>
       <div className="content-toolbar mb-6">
         <AlbumFilter

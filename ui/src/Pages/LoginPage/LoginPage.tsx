@@ -32,7 +32,7 @@ const LogoHeader = () => {
 
   return (
     <div className="mb-10 flex flex-col items-center text-center">
-      <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-[var(--brand-surface)] shadow-[0_24px_46px_rgba(216,61,103,0.22)]">
+      <div className="brand-surface-bg flex h-24 w-24 items-center justify-center rounded-[28px] shadow-[0_24px_46px_rgba(216,61,103,0.22)]">
         <img
           className="h-16"
           src={import.meta.env.BASE_URL + 'photoview-logo.svg'}
@@ -116,7 +116,12 @@ const LoginForm = () => {
         label={t('login_page.field.password', 'Password')}
         {...register('password')}
       />
-      <Button className="mt-2" type="submit" variant="positive" disabled={loading}>
+      <Button
+        className="mt-2 w-full"
+        type="submit"
+        variant="positive"
+        disabled={loading}
+      >
         {t('login_page.field.submit', 'Sign in')}
       </Button>
       <MessageBox

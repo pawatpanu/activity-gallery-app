@@ -291,7 +291,7 @@ const ActivityGallerySection = () => {
     )
 
     try {
-      const files = Array.from(selectedFiles)
+      const files = Array.from(selectedFiles) as File[]
       const data = await uploadFilesWithProgress(
         selectedRoot,
         uploadAlbumPath,
@@ -498,7 +498,7 @@ const ActivityGallerySection = () => {
                       ) : null}
                       <div className="h-2 overflow-hidden rounded-full bg-[rgba(127,139,163,0.18)]">
                         <div
-                          className="h-full rounded-full bg-[var(--brand-surface)] transition-all duration-200"
+                          className="brand-surface-bg h-full rounded-full transition-all duration-200"
                           style={{ width: `${uploadProgress}%` }}
                         />
                       </div>

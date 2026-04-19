@@ -19,7 +19,7 @@ const Header = () => {
         className="floating-surface flex w-full items-center justify-between gap-4 px-4 py-3 md:px-5 md:py-4"
       >
         <div className="mr-2 flex min-w-0 items-center gap-3 md:gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-[var(--brand-surface)] shadow-[0_18px_34px_rgba(216,61,103,0.2)]">
+          <div className="brand-surface-bg flex h-14 w-14 items-center justify-center rounded-[20px] shadow-[0_18px_34px_rgba(216,61,103,0.2)]">
             <img
               className="h-9 w-9"
               src={import.meta.env.BASE_URL + 'photoview-logo.svg'}

@@ -14,13 +14,17 @@ const Checkbox = ({ label, className, ...props }: CheckboxProps) => {
         className
       )}
     >
-      <input type="checkbox" className="peer sr-only" {...props} />
+      <input
+        type="checkbox"
+        className="brand-checkbox peer sr-only"
+        {...props}
+      />
       <span
         className={classNames(
-          'flex h-5 w-5 items-center justify-center rounded-[7px] border transition-all duration-200',
+          'brand-checkbox-box flex h-5 w-5 items-center justify-center rounded-[7px] border transition-all duration-200',
           'border-[var(--border-strong)] bg-[var(--surface-elevated)] shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]',
           'peer-focus:ring-[var(--shadow-focus)] peer-focus:border-[rgba(108,132,255,0.48)]',
-          'peer-checked:border-transparent peer-checked:bg-[var(--brand-surface)] peer-disabled:opacity-60'
+          'peer-checked:border-transparent peer-disabled:opacity-60'
         )}
       >
         <svg

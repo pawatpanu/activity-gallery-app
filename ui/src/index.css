@@ -197,6 +197,19 @@ html {
     color: var(--text-secondary);
   }
 
+  .brand-surface-bg {
+    background: var(--brand-surface);
+  }
+
+  .brand-checkbox:checked + .brand-checkbox-box {
+    background: var(--brand-surface);
+  }
+
+  .brand-checkbox:checked + .brand-checkbox-box svg {
+    opacity: 1;
+    transform: scale(1);
+  }
+
   .floating-surface {
     @apply rounded-[24px] border;
     background: var(--surface-elevated);

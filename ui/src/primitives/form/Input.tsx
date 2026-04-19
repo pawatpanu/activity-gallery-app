@@ -159,7 +159,7 @@ export const buttonStyles = ({ variant, background }: ButtonProps) =>
     variant == 'negative' &&
       'bg-[var(--danger-surface)] text-[var(--danger-text)] border-[rgba(217,83,113,0.18)] hover:bg-[#b93857] hover:border-[#b93857] hover:text-white',
     variant == 'positive' &&
-      'border-transparent bg-[var(--brand-surface)] text-white shadow-[0_18px_34px_rgba(216,61,103,0.24)] hover:brightness-105',
+      'brand-surface-bg border-transparent text-white shadow-[0_18px_34px_rgba(216,61,103,0.24)] hover:brightness-105',
     variant == 'default' &&
       'hover:bg-[var(--surface-muted)]'
   )

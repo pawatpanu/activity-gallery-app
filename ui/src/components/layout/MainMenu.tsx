@@ -25,7 +25,6 @@ type MenuButtonProps = {
   to: string
   exact: boolean
   label: string
-  caption: string
   accent: string
   icon?: React.ReactNode
 }
@@ -34,7 +33,6 @@ const MenuButton = ({
   to,
   exact,
   label,
-  caption,
   accent,
   icon,
 }: MenuButtonProps) => {
@@ -66,7 +64,6 @@ const MenuButton = ({
             <div className="text-[0.98rem] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">
               {label}
             </div>
-            <div className="truncate text-xs text-[var(--text-muted)]">{caption}</div>
           </div>
         </div>
       )}
@@ -109,16 +106,12 @@ export const MainMenu = () => {
           <div className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-primary)]">
             Activity Gallery
           </div>
-          <div className="mt-1 text-sm text-[var(--text-secondary)]">
-            Curated media collections and albums
-          </div>
         </div>
         <ul className="grid grid-cols-4 gap-2 lg:grid-cols-1 lg:gap-1">
           <MenuButton
             to="/timeline"
             exact
             label={t('sidemenu.photos', 'Timeline')}
-            caption="Chronological gallery"
             accent="linear-gradient(135deg, #6dc1ff 0%, #4f83ff 100%)"
             icon={
               <svg viewBox="0 0 24 24" fill="white" className="h-6 w-6">
@@ -130,7 +123,6 @@ export const MainMenu = () => {
             to="/albums"
             exact
             label={t('sidemenu.albums', 'Albums')}
-            caption="Managed collections"
             accent="linear-gradient(135deg, #ff8f64 0%, #f25076 100%)"
             icon={
               <svg viewBox="0 0 24 24" fill="white" className="h-6 w-6">
@@ -143,7 +135,6 @@ export const MainMenu = () => {
               to="/places"
               exact
               label={t('sidemenu.places', 'Places')}
-              caption="Location clusters"
               accent="linear-gradient(135deg, #71d68c 0%, #3fb970 100%)"
               icon={
                 <svg viewBox="0 0 24 24" fill="white" className="h-6 w-6">
@@ -157,7 +148,6 @@ export const MainMenu = () => {
               to="/people"
               exact
               label={t('sidemenu.people', 'People')}
-              caption="Face groups"
               accent="linear-gradient(135deg, #ffc970 0%, #f6a93c 100%)"
               icon={
                 <svg viewBox="0 0 24 24" fill="white" className="h-6 w-6">
@@ -171,7 +161,6 @@ export const MainMenu = () => {
             to="/settings"
             exact
             label={t('sidemenu.settings', 'Settings')}
-            caption="Preferences and scanner"
             accent="linear-gradient(135deg, #9cbfd0 0%, #6e92ac 100%)"
             icon={
               <svg viewBox="0 0 24 24" fill="white" className="h-6 w-6">

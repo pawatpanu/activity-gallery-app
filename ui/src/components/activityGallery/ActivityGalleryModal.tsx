@@ -30,6 +30,11 @@ type ActivityGalleryConfigResponse = {
   message?: string
 }
 
+type UploadBatch = {
+  files: File[]
+  label: string
+}
+
 type ActivityGalleryModalProps = {
   open: boolean
   onClose(): void
@@ -268,7 +273,7 @@ const ActivityGalleryModal = ({
       }
 
       const createdRootPath = data.rootPath || selectedRoot
-      const uploadBatches = [
+      const uploadBatches: UploadBatch[] = [
         {
           files: mainImage ? [mainImage] : [],
           label: t(
@@ -277,7 +282,7 @@ const ActivityGalleryModal = ({
           ),
         },
         {
-          files: albumImages ? Array.from(albumImages) : [],
+          files: albumImages ? (Array.from(albumImages) as File[]) : [],
           label: t(
             'albums_page.activity_gallery.progress.media',
             'กำลังอัปโหลดรูปภายในอัลบั้ม'
@@ -339,7 +344,7 @@ const ActivityGalleryModal = ({
       }
 
       if (albumImages && albumImages.length > 0) {
-        const files = Array.from(albumImages)
+        const files = Array.from(albumImages) as File[]
         await uploadFilesWithProgress(
           createdRootPath,
           data.relativePath,
@@ -570,7 +575,7 @@ const ActivityGalleryModal = ({
                 ) : null}
                 <div className="h-2 overflow-hidden rounded-full bg-[rgba(127,139,163,0.18)]">
                   <div
-                    className="h-full rounded-full bg-[var(--brand-surface)] transition-all duration-200"
+                    className="brand-surface-bg h-full rounded-full transition-all duration-200"
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
