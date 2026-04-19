@@ -140,6 +140,7 @@ const AlbumSharePage = ({ albumID, token, password }: AlbumSharePageProps) => {
         title={
           album ? album.title : t('general.loading.album', 'Loading album')
         }
+        publicView
       >
         <AlbumGallery
           ref={containerElem}

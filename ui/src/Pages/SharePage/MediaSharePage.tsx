@@ -52,7 +52,7 @@ const MediaSharePage = ({ media }: MediaSharePageType) => {
   const { t } = useTranslation()
 
   return (
-    <Layout title={t('share_page.media.title', 'Shared media')}>
+    <Layout title={t('share_page.media.title', 'Shared media')} publicView>
       <div data-testid="MediaSharePage">
         <h1 className="font-semibold text-xl mb-4">{media.title}</h1>
         <MediaView media={media} />

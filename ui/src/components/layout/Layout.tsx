@@ -17,9 +17,15 @@ export const ADMIN_QUERY = gql`
 type LayoutProps = {
   children: React.ReactNode
   title: string
+  publicView?: boolean
 }
 
-const Layout = ({ children, title, ...otherProps }: LayoutProps) => {
+const Layout = ({
+  children,
+  title,
+  publicView = false,
+  ...otherProps
+}: LayoutProps) => {
   const { pinned, content: sidebarContent } = useContext(SidebarContext)
 
   return (
@@ -29,16 +35,20 @@ const Layout = ({ children, title, ...otherProps }: LayoutProps) => {
       </Helmet>
       <div className="app-shell" {...otherProps} data-testid="Layout">
         <Header />
-        <Authorized>
-          <MainMenu />
-        </Authorized>
+        {!publicView && (
+          <Authorized>
+            <MainMenu />
+          </Authorized>
+        )}
         <div
-          className={`app-content ${pinned && sidebarContent ? 'lg:pr-[428px]' : ''}`}
+          className={`${
+            publicView ? 'app-content-public' : 'app-content'
+          } ${!publicView && pinned && sidebarContent ? 'lg:pr-[428px]' : ''}`}
           id="layout-content"
         >
           <div className="page-wrap">{children}</div>
         </div>
-        <Sidebar />
+        {!publicView && <Sidebar />}
       </div>
     </>
   )

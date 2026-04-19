@@ -141,6 +141,10 @@ html {
     @apply mx-3 my-4 pb-28 transition-all duration-300 md:mx-4 lg:mr-8 lg:ml-[312px] lg:mt-6 lg:pb-8;
   }
 
+  .app-content-public {
+    @apply mx-3 my-4 pb-28 transition-all duration-300 md:mx-4 lg:mx-8 lg:mt-6 lg:pb-8;
+  }
+
   .page-wrap {
     @apply relative overflow-hidden rounded-[30px] border px-5 py-5 md:px-6 md:py-6 lg:px-8 lg:py-8;
     background: var(--surface);
