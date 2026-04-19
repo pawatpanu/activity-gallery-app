@@ -6,6 +6,7 @@ import Layout from '../../components/layout/Layout'
 import ActivityGallerySection from './ActivityGallerySection'
 import ScannerSection from './ScannerSection'
 import UserPreferences from './UserPreferences'
+import SystemHealthSection from './SystemHealthSection'
 import UsersTable from './Users/UsersTable'
 import VersionInfo from './VersionInfo'
 import classNames from 'classnames'
@@ -52,6 +53,7 @@ const SettingsPage = () => {
       <UserPreferences />
       {isAdmin && (
         <>
+          <SystemHealthSection />
           <ActivityGallerySection />
           <ScannerSection />
           <UsersTable />
