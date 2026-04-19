@@ -19,11 +19,11 @@ const Header = () => {
         className="floating-surface flex w-full items-center justify-between gap-4 px-4 py-3 md:px-5 md:py-4"
       >
         <div className="mr-2 flex min-w-0 items-center gap-3 md:gap-4">
-          <div className="brand-surface-bg flex h-14 w-14 items-center justify-center rounded-[20px] shadow-[0_18px_34px_rgba(216,61,103,0.2)]">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-[0_18px_34px_rgba(0,92,45,0.16)]">
             <img
-              className="h-9 w-9"
-              src={import.meta.env.BASE_URL + 'photoview-logo.svg'}
-              alt="logo"
+              className="h-14 w-14 rounded-full object-contain"
+              src={import.meta.env.BASE_URL + 'sirattana-hospital-logo.png'}
+              alt="Sirattana Hospital logo"
             />
           </div>
           <div className="min-w-0">

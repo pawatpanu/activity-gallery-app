@@ -32,11 +32,11 @@ const LogoHeader = () => {
 
   return (
     <div className="mb-10 flex flex-col items-center text-center">
-      <div className="brand-surface-bg flex h-24 w-24 items-center justify-center rounded-[28px] shadow-[0_24px_46px_rgba(216,61,103,0.22)]">
+      <div className="flex h-28 w-28 items-center justify-center rounded-full bg-white shadow-[0_24px_46px_rgba(0,92,45,0.18)]">
         <img
-          className="h-16"
-          src={import.meta.env.BASE_URL + 'photoview-logo.svg'}
-          alt="photoview logo"
+          className="h-28 w-28 rounded-full object-contain"
+          src={import.meta.env.BASE_URL + 'sirattana-hospital-logo.png'}
+          alt="Sirattana Hospital logo"
         />
       </div>
       <h1 className="mt-6 text-[2.6rem] font-extrabold tracking-[-0.05em] text-[var(--text-primary)]">
