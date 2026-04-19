@@ -27,4 +27,4 @@ const Main = () => (
 const root = createRoot(document.getElementById('root')!)
 root.render(<Main />)
 
-serviceWorkerRegistration.register()
+serviceWorkerRegistration.unregister()
