@@ -22,6 +22,7 @@ import { SidebarPhotoShare } from '../Sharing'
 import SidebarMediaDownload from '../SidebarDownloadMedia'
 import SidebarHeader from '../SidebarHeader'
 import { Button } from '../../../primitives/form/Input'
+import Dropdown, { DropdownItem } from '../../../primitives/form/Dropdown'
 import { useIsAdmin } from '../../routes/AuthorizedRoute'
 import { SidebarSection, SidebarSectionTitle } from '../SidebarComponents'
 import { sidebarDownloadQuery_media_downloads } from '../__generated__/sidebarDownloadQuery'
@@ -43,6 +44,17 @@ const ACTIVITY_GALLERY_DELETE_MEDIA_URL = urlJoin(
   API_ENDPOINT,
   '/activity-gallery/media'
 )
+const ACTIVITY_GALLERY_ALBUMS_URL = urlJoin(
+  API_ENDPOINT,
+  '/activity-gallery/albums'
+)
+
+type ActivityGalleryAlbumOption = {
+  id: number
+  title: string
+  path: string
+  depth: number
+}
 
 const addMessage = (header: string, content: string, negative = false) => {
   MessageState.add({
@@ -188,14 +200,27 @@ type SidebarContentProps = {
   onDeleted?(): void
 }
 
-const SidebarContent = ({ media, hidePreview, onDeleted }: SidebarContentProps) => {
-	const { updateSidebar } = useContext(SidebarContext)
+const SidebarContent = ({
+  media,
+  hidePreview,
+  onDeleted,
+}: SidebarContentProps) => {
+  const { updateSidebar } = useContext(SidebarContext)
   const { t } = useTranslation()
   const isAdmin = useIsAdmin()
   const [deleting, setDeleting] = React.useState(false)
+  const [moving, setMoving] = React.useState(false)
+  const [destinationAlbumId, setDestinationAlbumId] = React.useState('')
+  const [albumOptions, setAlbumOptions] = React.useState<
+    ActivityGalleryAlbumOption[]
+  >([])
   let previewImage = null
   if (media.highRes) previewImage = media.highRes
   else if (media.thumbnail) previewImage = media.thumbnail
+
+  React.useEffect(() => {
+    setDestinationAlbumId('')
+  }, [media.id])
 
   const imageAspect =
     previewImage?.width && previewImage?.height
@@ -219,7 +244,7 @@ const SidebarContent = ({ media, hidePreview, onDeleted }: SidebarContentProps) 
         <Link
           className="text-blue-900 dark:text-blue-200 hover:underline"
           to={`/album/${album.id}`}
-					onClick={() => updateSidebar(null)}
+          onClick={() => updateSidebar(null)}
         >
           {album.title}
         </Link>
@@ -235,6 +260,39 @@ const SidebarContent = ({ media, hidePreview, onDeleted }: SidebarContentProps) 
       </div>
     )
   }
+
+  React.useEffect(() => {
+    if (!isAdmin || !authToken()) return
+
+    let cancelled = false
+    fetch(ACTIVITY_GALLERY_ALBUMS_URL, {
+      credentials: 'include',
+    })
+      .then(async response => {
+        const data = (await response.json()) as {
+          albums?: ActivityGalleryAlbumOption[]
+          message?: string
+        }
+        if (!response.ok) {
+          throw new Error(data.message || 'Could not load albums')
+        }
+        if (!cancelled) {
+          setAlbumOptions(data.albums || [])
+        }
+      })
+      .catch(error => {
+        if (cancelled) return
+        addMessage(
+          t('sidebar.media.move.load_failed.title', 'Load albums failed'),
+          error instanceof Error ? error.message : String(error),
+          true
+        )
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isAdmin, t])
 
   const deleteMedia = async () => {
     if (deleting) return
@@ -277,6 +335,63 @@ const SidebarContent = ({ media, hidePreview, onDeleted }: SidebarContentProps) 
     }
   }
 
+  const moveMedia = async () => {
+    if (moving || !destinationAlbumId) return
+
+    setMoving(true)
+    try {
+      const response = await fetch(
+        urlJoin(ACTIVITY_GALLERY_DELETE_MEDIA_URL, media.id, 'move'),
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            destinationAlbumId: Number(destinationAlbumId),
+          }),
+        }
+      )
+
+      const data = (await response.json()) as {
+        success?: boolean
+        message?: string
+      }
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Could not move media')
+      }
+
+      addMessage(
+        t('sidebar.media.move.success.title', 'Photo moved'),
+        t(
+          'sidebar.media.move.success.description',
+          'The selected image was moved successfully.'
+        )
+      )
+      updateSidebar(null)
+      onDeleted?.()
+    } catch (error) {
+      addMessage(
+        t('sidebar.media.move.failed.title', 'Move photo failed'),
+        error instanceof Error ? error.message : String(error),
+        true
+      )
+    } finally {
+      setMoving(false)
+    }
+  }
+
+  const currentAlbumId = media.album?.id ?? ''
+  const moveAlbumItems: DropdownItem[] = albumOptions
+    .filter(album => String(album.id) !== currentAlbumId)
+    .map(album => ({
+      value: String(album.id),
+      label: `${'\u00a0\u00a0'.repeat(Math.max(album.depth - 1, 0))}${
+        album.title
+      }`,
+    }))
+
   return (
     <div>
       <SidebarHeader title={media.title ?? 'Loading...'} />
@@ -309,13 +424,48 @@ const SidebarContent = ({ media, hidePreview, onDeleted }: SidebarContentProps) 
             <SidebarSectionTitle>
               {t('sidebar.media.management.title', 'Media management')}
             </SidebarSectionTitle>
+            {moveAlbumItems.length > 0 && (
+              <div className="mb-3">
+                <label className="mb-2 block">
+                  <span className="field-label">
+                    {t('sidebar.media.move.destination', 'Move to album')}
+                  </span>
+                  <Dropdown
+                    className="w-full"
+                    items={[
+                      {
+                        value: '',
+                        label: t(
+                          'sidebar.media.move.placeholder',
+                          'Select destination album'
+                        ),
+                      },
+                      ...moveAlbumItems,
+                    ]}
+                    selected={destinationAlbumId}
+                    setSelected={setDestinationAlbumId}
+                    disabled={moving || deleting}
+                  />
+                </label>
+                <Button
+                  variant="default"
+                  className="w-full"
+                  onClick={() => {
+                    void moveMedia()
+                  }}
+                  disabled={!destinationAlbumId || moving || deleting}
+                >
+                  {t('sidebar.media.move.action', 'Move photo')}
+                </Button>
+              </div>
+            )}
             <Button
               variant="negative"
               className="w-full"
               onClick={() => {
                 void deleteMedia()
               }}
-              disabled={deleting}
+              disabled={deleting || moving}
             >
               {t('sidebar.media.delete.action', 'Delete photo')}
             </Button>

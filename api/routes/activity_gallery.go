@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -62,12 +63,29 @@ type uploadMediaResponse struct {
 	Files        []string `json:"files"`
 }
 
+type activityGalleryAlbumOption struct {
+	ID    int    `json:"id"`
+	Title string `json:"title"`
+	Path  string `json:"path"`
+	Depth int    `json:"depth"`
+}
+
+type activityGalleryAlbumsResponse struct {
+	Albums []activityGalleryAlbumOption `json:"albums"`
+}
+
+type moveMediaRequest struct {
+	DestinationAlbumID int `json:"destinationAlbumId"`
+}
+
 func RegisterActivityGalleryRoutes(db *gorm.DB, router *mux.Router) {
 	router.HandleFunc("/config", activityGalleryConfigHandler(db)).Methods(http.MethodGet)
+	router.HandleFunc("/albums", activityGalleryAlbumsHandler(db)).Methods(http.MethodGet)
 	router.HandleFunc("/albums", createAlbumHandler(db)).Methods(http.MethodPost)
 	router.HandleFunc("/albums/{id}/children", createChildAlbumHandler(db)).Methods(http.MethodPost)
 	router.HandleFunc("/albums/{id}/upload", uploadAlbumMediaHandler(db)).Methods(http.MethodPost)
 	router.HandleFunc("/albums/{id}", deleteAlbumHandler(db)).Methods(http.MethodDelete)
+	router.HandleFunc("/media/{id}/move", moveMediaHandler(db)).Methods(http.MethodPost, http.MethodPatch)
 	router.HandleFunc("/media/{id}", deleteMediaHandler(db)).Methods(http.MethodDelete)
 	router.HandleFunc("/upload", uploadMediaHandler(db)).Methods(http.MethodPost)
 }
@@ -103,6 +121,25 @@ func activityGalleryConfigHandler(db *gorm.DB) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, resp)
+	}
+}
+
+func activityGalleryAlbumsHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, ok := requireAdminUser(w, r)
+		if !ok {
+			return
+		}
+
+		albums, err := userOwnedAlbumsFlat(db, user)
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		writeJSON(w, http.StatusOK, activityGalleryAlbumsResponse{
+			Albums: albums,
+		})
 	}
 }
 
@@ -495,6 +532,114 @@ func deleteAlbumHandler(db *gorm.DB) http.HandlerFunc {
 	}
 }
 
+func moveMediaHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, ok := requireAdminUser(w, r)
+		if !ok {
+			return
+		}
+
+		mediaID, err := strconv.Atoi(mux.Vars(r)["id"])
+		if err != nil || mediaID <= 0 {
+			writeJSONError(w, http.StatusBadRequest, "invalid media id")
+			return
+		}
+
+		var req moveMediaRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		if req.DestinationAlbumID <= 0 {
+			writeJSONError(w, http.StatusBadRequest, "destination album is required")
+			return
+		}
+
+		var media models.Media
+		if err := db.First(&media, mediaID).Error; err != nil {
+			writeJSONError(w, http.StatusNotFound, "media not found")
+			return
+		}
+
+		sourceAlbum, _, err := ownedAlbumForUser(db, user, media.AlbumID)
+		if err != nil {
+			writeJSONError(w, http.StatusForbidden, err.Error())
+			return
+		}
+
+		destinationAlbum, _, err := ownedAlbumForUser(db, user, req.DestinationAlbumID)
+		if err != nil {
+			writeJSONError(w, http.StatusForbidden, err.Error())
+			return
+		}
+
+		if sourceAlbum.ID == destinationAlbum.ID {
+			writeJSON(w, http.StatusOK, map[string]interface{}{
+				"success": true,
+				"message": "Media is already in the selected album",
+			})
+			return
+		}
+
+		stat, err := os.Stat(destinationAlbum.Path)
+		if err != nil || !stat.IsDir() {
+			writeJSONError(w, http.StatusBadRequest, "destination album directory does not exist")
+			return
+		}
+
+		originalCachePath, _ := media.CachePath()
+		destinationPath, destinationName, err := uniqueDestinationPath(destinationAlbum.Path, path.Base(media.Path))
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		if err := moveMediaFile(media.Path, destinationPath); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("could not move media file: %v", err))
+			return
+		}
+
+		previousPath := media.Path
+		previousAlbumID := media.AlbumID
+		media.Path = destinationPath
+		media.Title = destinationName
+		media.AlbumID = destinationAlbum.ID
+
+		err = db.Transaction(func(tx *gorm.DB) error {
+			if sourceAlbum.CoverID != nil && *sourceAlbum.CoverID == media.ID {
+				if err := tx.Model(&models.Album{}).Where("id = ?", sourceAlbum.ID).Update("cover_id", nil).Error; err != nil {
+					return err
+				}
+			}
+
+			return tx.Save(&media).Error
+		})
+		if err != nil {
+			_ = moveMediaFile(destinationPath, previousPath)
+			media.Path = previousPath
+			media.AlbumID = previousAlbumID
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("could not update media record: %v", err))
+			return
+		}
+
+		if originalCachePath != "" {
+			_ = os.RemoveAll(originalCachePath)
+		}
+
+		if err := scanner_queue.AddUserToQueue(user); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("media moved but scanner queue failed: %v", err))
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"message": "Media moved successfully",
+			"mediaId": media.ID,
+			"albumId": destinationAlbum.ID,
+		})
+	}
+}
+
 func deleteMediaHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, ok := requireAdminUser(w, r)
@@ -582,6 +727,50 @@ func userOwnedRootAlbums(db *gorm.DB, user *models.User) ([]*models.Album, error
 		).Or("albums.parent_album_id IS NULL").Order("path ASC").
 		Association("Albums").Find(&albums)
 	return albums, err
+}
+
+func userOwnedAlbumsFlat(db *gorm.DB, user *models.User) ([]activityGalleryAlbumOption, error) {
+	roots, err := userOwnedRootAlbums(db, user)
+	if err != nil {
+		return nil, err
+	}
+
+	seen := make(map[int]struct{})
+	albums := make([]activityGalleryAlbumOption, 0)
+	for _, root := range roots {
+		children, err := root.GetChildren(db, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		rootPath := path.Clean(root.Path)
+		for _, album := range children {
+			if _, exists := seen[album.ID]; exists {
+				continue
+			}
+			seen[album.ID] = struct{}{}
+
+			cleanAlbumPath := path.Clean(album.Path)
+			relativePath := strings.TrimPrefix(strings.TrimPrefix(cleanAlbumPath, rootPath), "/")
+			depth := 0
+			if relativePath != "" {
+				depth = strings.Count(relativePath, "/") + 1
+			}
+
+			albums = append(albums, activityGalleryAlbumOption{
+				ID:    album.ID,
+				Title: album.Title,
+				Path:  album.Path,
+				Depth: depth,
+			})
+		}
+	}
+
+	sort.Slice(albums, func(i, j int) bool {
+		return albums[i].Path < albums[j].Path
+	})
+
+	return albums, nil
 }
 
 func directChildActivities(db *gorm.DB, root *models.Album) ([]activityGalleryFolder, error) {
@@ -820,6 +1009,41 @@ func removeMediaFile(filePath string) error {
 	if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
 		return err
 	}
+	return nil
+}
+
+func moveMediaFile(sourcePath string, destinationPath string) error {
+	if err := os.Rename(sourcePath, destinationPath); err == nil {
+		return nil
+	}
+
+	src, err := os.Open(sourcePath)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	dst, err := os.Create(destinationPath)
+	if err != nil {
+		return err
+	}
+
+	_, copyErr := io.Copy(dst, src)
+	closeErr := dst.Close()
+	if copyErr != nil {
+		_ = os.Remove(destinationPath)
+		return copyErr
+	}
+	if closeErr != nil {
+		_ = os.Remove(destinationPath)
+		return closeErr
+	}
+
+	if err := os.Remove(sourcePath); err != nil {
+		_ = os.Remove(destinationPath)
+		return err
+	}
+
 	return nil
 }
 
